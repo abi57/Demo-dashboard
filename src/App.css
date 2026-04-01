@@ -1,0 +1,7 @@
+/* Global layout resets — page-level styles live in module files */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  background: var(--bg);
+}
