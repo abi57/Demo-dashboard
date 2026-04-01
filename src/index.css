@@ -1,51 +1,86 @@
 @import "tailwindcss";
 
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* ── Dark theme (default) ───────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --bg-base:      #080c14;
+  --bg-surface:   #0d1117;
+  --bg-elevated:  #111827;
+  --bg-hover:     rgba(255,255,255,0.04);
+  --bg-active:    rgba(255,255,255,0.07);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  --border:       rgba(255,255,255,0.07);
+  --border-soft:  rgba(255,255,255,0.04);
+
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-faint:     #334155;
+  --text-xfaint:    #1e293b;
+
+  --accent:       #22d3ee;   /* cyan-400 */
+  --accent-bg:    rgba(34,211,238,0.08);
+  --accent-border:rgba(34,211,238,0.2);
+
+  --scrollbar:    rgba(255,255,255,0.07);
+}
+
+/* ── Light theme ────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base:      #f1f5f9;
+  --bg-surface:   #ffffff;
+  --bg-elevated:  #f8fafc;
+  --bg-hover:     rgba(0,0,0,0.03);
+  --bg-active:    rgba(0,0,0,0.06);
+
+  --border:       rgba(0,0,0,0.08);
+  --border-soft:  rgba(0,0,0,0.05);
+
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
+  --text-faint:     #94a3b8;
+  --text-xfaint:    #cbd5e1;
+
+  --accent:       #0891b2;   /* cyan-600 */
+  --accent-bg:    rgba(8,145,178,0.08);
+  --accent-border:rgba(8,145,178,0.25);
+
+  --scrollbar:    rgba(0,0,0,0.1);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────── */
+*    { box-sizing: border-box; }
+body { margin: 0; background: var(--bg-base); transition: background 0.2s; }
+
+html {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02","cv03","cv04","cv11";
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #0f1117;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* Native form controls inherit theme color-scheme so dropdowns/pickers match */
+input, select, textarea, button {
+  color-scheme: inherit;
+  font-family: inherit;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; }
+/* Placeholder color follows theme */
+input::placeholder, textarea::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+/* Select option background follows surface */
+select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
 
 #root {
   width: 100%;
@@ -54,16 +89,47 @@ body { margin: 0; }
   flex-direction: column;
 }
 
-/* ── Animations ─────────────────────────────────────────────────────────────── */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
+
+/* Smooth theme transitions on all surfaces */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+/* But don't slow down transforms/opacity animations */
+.animate-fade-up, .animate-slide-in, [class*="animate-"] {
+  transition: none;
 }
 
+/* ── Theme-aware utility classes ────────────────────────────────────────────── */
+.t-bg-base     { background: var(--bg-base); }
+.t-bg-surface  { background: var(--bg-surface); }
+.t-bg-elevated { background: var(--bg-elevated); }
+.t-border      { border-color: var(--border); }
+.t-text-1      { color: var(--text-primary); }
+.t-text-2      { color: var(--text-secondary); }
+.t-text-3      { color: var(--text-muted); }
+.t-text-4      { color: var(--text-faint); }
+
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes slide-in {
-  from { opacity: 0; transform: translateX(40px); }
+  from { opacity: 0; transform: translateX(32px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-up  { animation: fade-up  0.4s ease both; }
-.animate-slide-in { animation: slide-in 0.3s ease both; }
+.animate-fade-up  { animation: fade-up  0.3s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-slide-in { animation: slide-in 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Print ──────────────────────────────────────────────────────────────────── */
+@media print {
+  aside { display: none !important; }
+  body  { background: white; color: black; }
+}

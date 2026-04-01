@@ -1,34 +1,32 @@
 import { useAlert } from '../context/AlertContext'
 
-const STYLES = {
-  info:    { bar: 'bg-blue-500',   icon: 'ℹ️',  text: 'text-blue-400',   bg: 'bg-blue-500/10   border-blue-500/20'   },
-  success: { bar: 'bg-green-500',  icon: '✅',  text: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/20'  },
-  warning: { bar: 'bg-yellow-500', icon: '⚠️',  text: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-  error:   { bar: 'bg-red-500',    icon: '🚨',  text: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/20'    },
+const META = {
+  info:    { bar: '#60a5fa', icon: 'ℹ', text: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.2)'  },
+  success: { bar: '#34d399', icon: '✓', text: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.2)'  },
+  warning: { bar: '#fbbf24', icon: '▲', text: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.2)'  },
+  error:   { bar: '#f87171', icon: '✕', text: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
 }
 
 export default function AlertToast() {
   const { alerts, dismiss } = useAlert()
-
   return (
-    <div className="fixed top-16 right-4 z-[200] flex flex-col gap-2 w-80 pointer-events-none">
+    <div className="fixed top-4 right-4 z-[200] flex flex-col gap-2 w-80 pointer-events-none">
       {alerts.map(alert => {
-        const s = STYLES[alert.type] ?? STYLES.info
+        const m = META[alert.type] ?? META.info
         return (
-          <div
-            key={alert.id}
-            className={`pointer-events-auto relative overflow-hidden flex items-start gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-xl ${s.bg} animate-slide-in`}
+          <div key={alert.id}
+            className="pointer-events-auto relative overflow-hidden flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl animate-slide-in"
+            style={{ background: 'var(--bg-surface)', border: `1px solid ${m.border}`, backdropFilter: 'blur(16px)' }}
           >
-            {/* accent bar */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.bar}`} />
-            <span className="text-lg mt-0.5 ml-1">{s.icon}</span>
-            <p className={`flex-1 text-sm font-medium ${s.text}`}>{alert.message}</p>
-            <button
-              onClick={() => dismiss(alert.id)}
-              className="text-slate-500 hover:text-white text-lg leading-none mt-0.5 transition-colors"
-            >
-              ×
-            </button>
+            <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.bar }} />
+            <span className="text-[13px] font-bold ml-1 mt-0.5 flex-shrink-0" style={{ color: m.text }}>{m.icon}</span>
+            <p className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{alert.message}</p>
+            <button onClick={() => dismiss(alert.id)}
+              className="text-lg leading-none mt-0.5 transition-colors flex-shrink-0"
+              style={{ color: 'var(--text-faint)' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
+            >×</button>
           </div>
         )
       })}

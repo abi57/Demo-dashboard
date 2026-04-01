@@ -1,9 +1,8 @@
 import { createContext, useContext, useState } from 'react'
 
-// Demo credentials
 const USERS = [
-  { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin User' },
-  { username: 'user',  password: 'user123',  role: 'user',  name: 'John Doe'   },
+  { email: 'admin@viotel.io', password: 'admin123', role: 'admin', name: 'Admin User' },
+  { email: 'engineer@viotel.io', password: 'user123', role: 'user', name: 'James Okafor' },
 ]
 
 const AuthContext = createContext(null)
@@ -14,9 +13,9 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null
   })
 
-  function login(username, password) {
-    const match = USERS.find(u => u.username === username && u.password === password)
-    if (!match) return { ok: false, error: 'Invalid username or password' }
+  function login(email, password) {
+    const match = USERS.find(u => u.email === email && u.password === password)
+    if (!match) return { ok: false, error: 'Invalid email or password' }
     const { password: _, ...safe } = match
     setUser(safe)
     sessionStorage.setItem('viotel_user', JSON.stringify(safe))
