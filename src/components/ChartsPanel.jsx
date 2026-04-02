@@ -1,52 +1,55 @@
 import { useState, useEffect } from 'react'
 
-function Sparkline({ data, color = '#22d3ee', height = 52 }) {
+function Sparkline({ data, color = '#00bcd4', height = 56 }) {
   if (!data || data.length < 2) return null
   const min = Math.min(...data)
   const max = Math.max(...data)
   const range = max - min || 1
-  const w = 200; const h = height
+  const W = 200, H = height
   const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w
-    const y = h - ((v - min) / range) * (h - 10) - 5
+    const x = (i / (data.length - 1)) * W
+    const y = H - ((v - min) / range) * (H - 12) - 6
     return `${x},${y}`
-  }).join(' ')
-  const fillPts = `0,${h} ${pts} ${w},${h}`
+  })
+  const line = pts.join(' ')
+  const fill = `0,${H} ${line} ${W},${H}`
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height }}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} preserveAspectRatio="none">
       <defs>
-        <linearGradient id={`grad-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2"/>
+        <linearGradient id={`g${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.18"/>
           <stop offset="100%" stopColor={color} stopOpacity="0"/>
         </linearGradient>
       </defs>
-      <polygon points={fillPts} fill={`url(#grad-${color.replace('#','')})`}/>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <polygon points={fill} fill={`url(#g${color.replace('#','')})`}/>
+      <polyline points={line} fill="none" stroke={color} strokeWidth="1.6"
+        strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
-function generateHistory(base, drift, len = 24) {
-  const arr = [base]
+function seed(base, drift, len = 24) {
+  const a = [base]
   for (let i = 1; i < len; i++)
-    arr.push(parseFloat((arr[i-1] + (Math.random() - 0.5) * drift * 2).toFixed(2)))
-  return arr
+    a.push(parseFloat((a[i-1] + (Math.random() - 0.5) * drift * 2).toFixed(2)))
+  return a
 }
 
 export default function ChartsPanel({ sensors }) {
-  const [histories, setHistories] = useState(() =>
-    Object.fromEntries(sensors.map(s => [s.id, generateHistory(s.value, s.drift ?? 1)]))
+  const [hist, setHist] = useState(() =>
+    Object.fromEntries(sensors.map(s => [s.id, seed(s.value, s.drift ?? 1)]))
   )
 
   useEffect(() => {
     const t = setInterval(() => {
-      setHistories(prev => {
+      setHist(prev => {
         const next = { ...prev }
         sensors.forEach(s => {
           const arr = prev[s.id] ?? []
           const last = arr[arr.length - 1] ?? s.value
-          next[s.id] = [...arr.slice(-23), parseFloat((last + (Math.random() - 0.5) * (s.drift ?? 1) * 2).toFixed(2))]
+          next[s.id] = [...arr.slice(-23),
+            parseFloat((last + (Math.random() - 0.5) * (s.drift ?? 1) * 2).toFixed(2))]
         })
         return next
       })
@@ -57,36 +60,72 @@ export default function ChartsPanel({ sensors }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {sensors.map(s => {
-        const hist = histories[s.id] ?? []
-        const current = hist[hist.length - 1] ?? s.value
-        const prev = hist[hist.length - 2] ?? current
-        const delta = current - prev
+        const data    = hist[s.id] ?? []
+        const current = data[data.length - 1] ?? s.value
+        const prev    = data[data.length - 2] ?? current
+        const delta   = parseFloat((current - prev).toFixed(2))
+        const up      = delta > 0
+
         return (
           <div
             key={s.id}
-            className="rounded-2xl p-5 transition-colors"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            className="overflow-hidden transition-all"
+            style={{
+              borderRadius: 12,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
           >
-            <div className="flex items-center justify-between mb-4">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-base">{s.icon}</span>
-                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>{s.title}</span>
+                <span style={{ fontSize: 16 }}>{s.icon}</span>
+                <span style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-secondary)' }}>
+                  {s.title}
+                </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 {delta !== 0 && (
-                  <span className="text-[10px] font-medium" style={{ color: delta > 0 ? '#34d399' : '#f87171' }}>
-                    {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(2)}
+                  <span style={{
+                    fontSize: 'var(--t-micro)',
+                    fontWeight: 'var(--fw-semibold)',
+                    color: up ? 'var(--success)' : 'var(--danger)',
+                  }}>
+                    {up ? '▲' : '▼'} {Math.abs(delta)}
                   </span>
                 )}
-                <span className="text-[18px] font-bold tabular-nums" style={{ color: s.accent }}>
-                  {current}<span className="text-[11px] font-normal ml-0.5" style={{ color: 'var(--text-muted)' }}>{s.unit}</span>
+                <span style={{
+                  fontSize: 'var(--t-data-lg)',
+                  fontWeight: 'var(--fw-bold)',
+                  letterSpacing: 'var(--ls-tight)',
+                  lineHeight: 1,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: s.accent,
+                }}>
+                  {current}
+                  <span style={{ fontSize: 'var(--t-caption)', fontWeight: 'var(--fw-medium)', marginLeft: 3, color: 'var(--text-muted)' }}>
+                    {s.unit}
+                  </span>
                 </span>
               </div>
             </div>
-            <Sparkline data={hist} color={s.accent} />
-            <div className="flex justify-between mt-2">
-              <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>24 readings</span>
-              <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Live · 3s</span>
+
+            {/* Chart */}
+            <Sparkline data={data} color={s.accent} />
+
+            {/* Footer */}
+            <div
+              className="flex items-center justify-between px-5 py-2.5"
+              style={{ borderTop: '1px solid var(--border-soft)' }}
+            >
+              <span style={{ fontSize: 'var(--t-micro)', color: 'var(--text-faint)' }}>24 readings</span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-full animate-pulse" style={{ width: 5, height: 5, background: 'var(--success)' }} />
+                <span style={{ fontSize: 'var(--t-micro)', color: 'var(--text-faint)' }}>Live · 3s</span>
+              </div>
             </div>
           </div>
         )

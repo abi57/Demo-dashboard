@@ -3,25 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAlert } from '../context/AlertContext'
 import { useTheme } from '../context/ThemeContext'
-
-/* ── Logo mark ─────────────────────────────────────────────────────────────── */
-function Logo({ size = 36 }) {
-  return (
-    <div
-      className="rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{
-        width: size, height: size,
-        background: 'linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%)',
-        boxShadow: '0 4px 16px rgba(34,211,238,0.35)',
-      }}
-    >
-      <svg width={size * 0.52} height={size * 0.52} viewBox="0 0 20 20" fill="none">
-        <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
-        <circle cx="10" cy="10" r="2.8" fill="white"/>
-      </svg>
-    </div>
-  )
-}
+import { BrandLockup, LogoMark, BRAND } from '../components/Brand'
 
 /* ── Eye toggle icon ───────────────────────────────────────────────────────── */
 function EyeIcon({ open }) {
@@ -41,25 +23,23 @@ function EyeIcon({ open }) {
 function Feature({ icon, title, desc, isDark }) {
   return (
     <div
-      className="flex items-start gap-3.5 p-4 rounded-xl transition-colors"
+      className="flex items-start gap-3 p-3.5 rounded-xl"
       style={{
-        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-        border: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.06)',
+        background: isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)',
+        border: isDark ? '1px solid rgba(255,255,255,0.065)' : '1px solid rgba(0,0,0,0.055)',
       }}
     >
       <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: 'rgba(34,211,238,0.12)', color: '#22d3ee' }}
+        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+        style={{ background: 'rgba(0,188,212,0.12)', color: '#00bcd4' }}
       >
         {icon}
       </div>
       <div>
-        <p className="text-[13px] font-semibold leading-none mb-1"
-          style={{ color: isDark ? 'rgba(255,255,255,0.9)' : '#0f172a' }}>
+        <p style={{ fontSize: 12.5, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.88)' : '#0c1420', lineHeight: 1, marginBottom: 3 }}>
           {title}
         </p>
-        <p className="text-[12px] leading-relaxed"
-          style={{ color: isDark ? 'rgba(255,255,255,0.38)' : '#64748b' }}>
+        <p style={{ fontSize: 11.5, color: isDark ? 'rgba(255,255,255,0.36)' : '#6b7a8d', lineHeight: 1.5 }}>
           {desc}
         </p>
       </div>
@@ -70,9 +50,9 @@ function Feature({ icon, title, desc, isDark }) {
 /* ── Stat chip ─────────────────────────────────────────────────────────────── */
 function Stat({ value, label, isDark }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="text-[22px] font-bold leading-none" style={{ color: '#22d3ee' }}>{value}</p>
-      <p className="text-[11px]" style={{ color: isDark ? 'rgba(255,255,255,0.35)' : '#94a3b8' }}>{label}</p>
+    <div>
+      <p style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.03em', color: '#00bcd4' }}>{value}</p>
+      <p style={{ fontSize: 11, marginTop: 3, color: isDark ? 'rgba(255,255,255,0.32)' : '#9aaabb' }}>{label}</p>
     </div>
   )
 }
@@ -114,25 +94,25 @@ export default function SignIn() {
   }
 
   /* ── Theme-dependent values ── */
-  const bg        = isDark ? '#060b14'                    : '#f0f4f8'
-  const panelBg   = isDark ? '#0a1020'                    : '#e8edf5'
-  const cardBg    = isDark ? 'rgba(13,17,27,0.95)'        : 'rgba(255,255,255,0.98)'
+  const bg        = isDark ? '#07090f'                    : '#eef2f7'
+  const panelBg   = isDark ? '#0a0e18'                    : '#e6ecf4'
+  const cardBg    = isDark ? 'rgba(12,16,24,0.97)'        : 'rgba(255,255,255,0.99)'
   const cardBorder= isDark ? 'rgba(255,255,255,0.08)'     : 'rgba(0,0,0,0.08)'
   const divider   = isDark ? 'rgba(255,255,255,0.07)'     : 'rgba(0,0,0,0.07)'
-  const inputBg   = isDark ? 'rgba(255,255,255,0.05)'     : '#f8fafc'
-  const inputBdr  = isDark ? 'rgba(255,255,255,0.1)'      : 'rgba(0,0,0,0.12)'
-  const inputClr  = isDark ? '#e2e8f0'                    : '#0f172a'
-  const labelClr  = isDark ? 'rgba(255,255,255,0.45)'     : '#64748b'
-  const subClr    = isDark ? 'rgba(255,255,255,0.35)'     : '#94a3b8'
-  const demoBg    = isDark ? 'rgba(255,255,255,0.05)'     : 'rgba(0,0,0,0.04)'
-  const demoBdr   = isDark ? 'rgba(255,255,255,0.09)'     : 'rgba(0,0,0,0.08)'
-  const demoClr   = isDark ? 'rgba(255,255,255,0.45)'     : '#64748b'
-  const eyeClr    = isDark ? 'rgba(255,255,255,0.3)'      : '#94a3b8'
-  const glowA     = isDark ? 'rgba(34,211,238,0.12)'      : 'rgba(8,145,178,0.08)'
-  const glowB     = isDark ? 'rgba(99,102,241,0.1)'       : 'rgba(99,102,241,0.06)'
-  const gridClr   = isDark ? 'rgba(255,255,255,0.025)'    : 'rgba(0,0,0,0.04)'
-  const headClr   = isDark ? '#ffffff'                    : '#0f172a'
-  const footerClr = isDark ? 'rgba(255,255,255,0.18)'     : '#94a3b8'
+  const inputBg   = isDark ? 'rgba(255,255,255,0.04)'     : '#f5f8fc'
+  const inputBdr  = isDark ? 'rgba(255,255,255,0.09)'     : 'rgba(0,0,0,0.1)'
+  const inputClr  = isDark ? '#f0f4f8'                    : '#0d1520'
+  const labelClr  = isDark ? 'rgba(255,255,255,0.42)'     : '#6b7a8d'
+  const subClr    = isDark ? 'rgba(255,255,255,0.3)'      : '#9aaabb'
+  const demoBg    = isDark ? 'rgba(255,255,255,0.04)'     : 'rgba(0,0,0,0.03)'
+  const demoBdr   = isDark ? 'rgba(255,255,255,0.08)'     : 'rgba(0,0,0,0.07)'
+  const demoClr   = isDark ? 'rgba(255,255,255,0.4)'      : '#6b7a8d'
+  const eyeClr    = isDark ? 'rgba(255,255,255,0.25)'     : '#9aaabb'
+  const glowA     = isDark ? 'rgba(0,200,224,0.1)'        : 'rgba(2,132,199,0.07)'
+  const glowB     = isDark ? 'rgba(99,102,241,0.08)'      : 'rgba(99,102,241,0.05)'
+  const gridClr   = isDark ? 'rgba(255,255,255,0.022)'    : 'rgba(0,0,0,0.035)'
+  const headClr   = isDark ? '#f0f4f8'                    : '#0d1520'
+  const footerClr = isDark ? 'rgba(255,255,255,0.16)'     : '#9aaabb'
 
   return (
     <div className="min-h-screen flex relative overflow-hidden" style={{ background: bg }}>
@@ -158,54 +138,51 @@ export default function SignIn() {
       >
         {/* Brand */}
         <div>
-          <div className="flex items-center gap-3 mb-14">
-            <Logo size={40} />
-            <div>
-              <p className="font-bold text-[17px] leading-none tracking-tight" style={{ color: headClr }}>Viotel</p>
-              <p className="text-[10px] tracking-[0.18em] uppercase mt-1 font-medium" style={{ color: subClr }}>
-                Infrastructure Platform
-              </p>
-            </div>
+          <div className="mb-12">
+            <BrandLockup size="lg" showTagline theme={isDark ? 'dark' : 'light'} />
           </div>
 
-          <div className="mb-10">
-            <h2 className="text-[34px] font-bold leading-[1.15] tracking-tight mb-4" style={{ color: headClr }}>
-              Enterprise IoT<br />Asset Management
+          <div className="mb-9">
+            <h2
+              className="font-bold leading-[1.15] mb-4"
+              style={{ fontSize: 32, letterSpacing: '-0.03em', color: headClr }}
+            >
+              Real-Time Monitoring<br />for Critical Infrastructure
             </h2>
-            <p className="text-[14px] leading-[1.7]" style={{ color: isDark ? 'rgba(255,255,255,0.42)' : '#64748b' }}>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: isDark ? 'rgba(255,255,255,0.4)' : '#6b7a8d' }}>
               Manage sensor installations, monitor device health, and track field operations across your entire infrastructure network.
             </p>
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center gap-8 mb-10 pb-10" style={{ borderBottom: `1px solid ${divider}` }}>
+          <div className="flex items-center gap-8 mb-9 pb-9" style={{ borderBottom: `1px solid ${divider}` }}>
             <Stat value="2,400+" label="Installations" isDark={isDark} />
             <Stat value="180+"   label="Active sites"  isDark={isDark} />
-            <Stat value="99.7%"  label="Uptime"        isDark={isDark} />
+            <Stat value="99.7%"  label="Uptime SLA"    isDark={isDark} />
           </div>
 
           {/* Features */}
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             <Feature isDark={isDark}
-              icon={<svg width="14" height="14" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M7.5 1.5V3M7.5 12V13.5M1.5 7.5H3M12 7.5H13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>}
-              title="Real-time monitoring"
-              desc="Live sensor data across all sites and towers"
+              icon={<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M7.5 1.5V3M7.5 12V13.5M1.5 7.5H3M12 7.5H13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>}
+              title="Real-time asset monitoring"
+              desc="Live sensor data streamed from every site and tower"
             />
             <Feature isDark={isDark}
-              icon={<svg width="14" height="14" viewBox="0 0 15 15" fill="none"><rect x="2" y="1" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5 5H10M5 7.5H10M5 10H8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>}
-              title="Installation management"
-              desc="Full audit trail for every field deployment"
+              icon={<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><rect x="2" y="1" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5 5H10M5 7.5H10M5 10H8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>}
+              title="Full installation audit trail"
+              desc="Every field deployment logged, verified, and searchable"
             />
             <Feature isDark={isDark}
-              icon={<svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L13 4.5V10.5L7.5 14L2 10.5V4.5L7.5 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>}
-              title="Multi-site operations"
-              desc="Grouped by region, operator, and tower type"
+              icon={<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M2 12L5 8L7.5 10L10 6L13 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><rect x="1" y="1" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.3"/></svg>}
+              title="Smarter data, faster decisions"
+              desc="Trend analysis and alerts across your entire asset base"
             />
           </div>
         </div>
 
-        <p className="text-[11px]" style={{ color: footerClr }}>
-          © 2025 Viotel Technologies. All rights reserved.
+        <p style={{ fontSize: 11, color: footerClr }}>
+          © {BRAND.year} {BRAND.name} Technologies. All rights reserved.
         </p>
       </div>
 
@@ -243,12 +220,8 @@ export default function SignIn() {
           }}
         >
           {/* Mobile brand */}
-          <div className="flex items-center gap-3 mb-10 lg:hidden">
-            <Logo size={36} />
-            <div>
-              <p className="font-bold text-[16px] leading-none" style={{ color: headClr }}>Viotel</p>
-              <p className="text-[10px] tracking-widest uppercase mt-0.5" style={{ color: subClr }}>Platform</p>
-            </div>
+          <div className="mb-10 lg:hidden">
+            <BrandLockup size="md" theme={isDark ? 'dark' : 'light'} />
           </div>
 
           {/* Card surface */}
@@ -264,11 +237,14 @@ export default function SignIn() {
           >
             {/* Heading */}
             <div className="mb-7">
-              <h1 className="text-[24px] font-bold tracking-tight leading-none mb-2" style={{ color: headClr }}>
-                Sign in to Viotel
+              <h1
+                className="font-bold leading-none mb-2"
+                style={{ fontSize: 22, letterSpacing: '-0.025em', color: headClr }}
+              >
+                Sign in to {BRAND.name}
               </h1>
-              <p className="text-[13px]" style={{ color: subClr }}>
-                Access your infrastructure dashboard
+              <p style={{ fontSize: 13, color: subClr }}>
+                {BRAND.tagline}
               </p>
             </div>
 
@@ -322,7 +298,7 @@ export default function SignIn() {
                   autoComplete="email"
                   placeholder="you@company.com"
                   className="w-full rounded-xl px-4 py-3 text-[14px] outline-none transition-all"
-                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: inputClr, caretColor: '#22d3ee' }}
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: inputClr, caretColor: '#00c8e0' }}
                   onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.5)'}
                   onBlur={e => e.target.style.borderColor = inputBdr}
                 />
@@ -335,7 +311,7 @@ export default function SignIn() {
                   <button
                     type="button"
                     className="text-[11px] font-medium transition-colors"
-                    style={{ color: '#22d3ee' }}
+                    style={{ color: '#00c8e0' }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                   >
@@ -350,7 +326,7 @@ export default function SignIn() {
                     autoComplete="current-password"
                     placeholder="••••••••"
                     className="w-full rounded-xl px-4 py-3 pr-11 text-[14px] outline-none transition-all"
-                    style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: inputClr, caretColor: '#22d3ee' }}
+                    style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: inputClr, caretColor: '#00c8e0' }}
                     onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.5)'}
                     onBlur={e => e.target.style.borderColor = inputBdr}
                   />
@@ -372,8 +348,8 @@ export default function SignIn() {
                 <div
                   className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
-                    background: form.remember ? '#22d3ee' : 'transparent',
-                    border: form.remember ? '1px solid #22d3ee' : `1px solid ${inputBdr}`,
+                    background: form.remember ? '#00c8e0' : 'transparent',
+                    border: form.remember ? '1px solid #00c8e0' : `1px solid ${inputBdr}`,
                   }}
                   onClick={() => set('remember', !form.remember)}
                 >
@@ -406,7 +382,7 @@ export default function SignIn() {
                 disabled={loading}
                 className="w-full py-3.5 rounded-xl font-semibold text-[14px] transition-all active:scale-[0.98] disabled:opacity-40 mt-1"
                 style={{
-                  background: 'linear-gradient(135deg, #22d3ee 0%, #0891b2 100%)',
+                  background: 'linear-gradient(135deg, #00c8e0 0%, #0284c7 100%)',
                   color: '#020617',
                   boxShadow: '0 6px 20px rgba(34,211,238,0.3)',
                 }}
@@ -460,8 +436,8 @@ export default function SignIn() {
             ))}
           </div>
 
-          <p className="text-center text-[11px] mt-5" style={{ color: isDark ? 'rgba(255,255,255,0.18)' : '#cbd5e1' }}>
-            © 2025 Viotel Technologies · Enterprise IoT Platform
+          <p className="text-center mt-5" style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.16)' : '#c5d0dc' }}>
+            © {BRAND.year} {BRAND.name} Technologies · {BRAND.tagline}
           </p>
         </div>
       </div>

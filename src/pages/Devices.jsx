@@ -21,8 +21,8 @@ export default function Devices() {
   })
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 transition-colors duration-200" style={{ background: 'var(--bg-base)' }}>
-      <Header title="Devices / Sensors" subtitle={`${devices.length} registered devices across all sites`} />
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
+      <Header title="Devices & Sensors" subtitle={`${devices.length} registered devices across all sites`} />
       <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
 
         <div className="flex items-center gap-4">
@@ -35,13 +35,13 @@ export default function Devices() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search devices…"
-              className="rounded-lg pl-9 pr-4 py-2 text-[13px] outline-none transition-all w-56"
+              className="t-nav rounded-lg pl-9 pr-4 py-2 outline-none transition-all w-56"
               style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               onFocus={e => e.target.style.borderColor = 'var(--accent-border)'}
               onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
-          <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{filtered.length} results</span>
+          <span className="t-caption" style={{ color: 'var(--text-faint)' }}>{filtered.length} results</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -51,7 +51,7 @@ export default function Devices() {
               <div
                 key={d.id}
                 onClick={() => navigate(`/devices/${d.id}`)}
-                className="rounded-2xl p-5 cursor-pointer transition-all group"
+                className="rounded-xl p-5 cursor-pointer transition-all group"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-surface)' }}
@@ -63,8 +63,8 @@ export default function Devices() {
                       {meta.icon}
                     </div>
                     <div>
-                      <p className="font-semibold text-[13px] font-mono" style={{ color: 'var(--text-primary)' }}>{d.serial}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{d.site}</p>
+                      <p className="t-body-sm font-semibold font-mono" style={{ color: 'var(--text-primary)' }}>{d.serial}</p>
+                      <p className="t-caption mt-0.5" style={{ color: 'var(--text-muted)' }}>{d.site}</p>
                     </div>
                   </div>
                   <StatusBadge status={d.status} pulse={d.status === 'Online'} />
@@ -78,19 +78,18 @@ export default function Devices() {
                     { label: 'Health',    value: d.health },
                   ].map(f => (
                     <div key={f.label}>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--text-xfaint)' }}>{f.label}</p>
-                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{f.value}</p>
+                      <p className="t-label mb-1" style={{ color: 'var(--text-xfaint)' }}>{f.label}</p>
+                      <p className="t-caption" style={{ color: 'var(--text-muted)' }}>{f.value}</p>
                     </div>
                   ))}
                 </div>
 
                 <div className="flex items-center justify-between pt-3.5" style={{ borderTop: '1px solid var(--border-soft)' }}>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+                  <span className="t-micro px-2 py-0.5 rounded-md font-medium"
                     style={{ color: meta.accent, background: `${meta.accent}12`, border: `1px solid ${meta.accent}25` }}>
                     {meta.label}
                   </span>
-                  <span className="text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
-                    style={{ color: 'var(--accent)' }}>
+                  <span className="t-caption opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--accent)' }}>
                     View dashboard →
                   </span>
                 </div>

@@ -1,39 +1,45 @@
 const PALETTE = {
-  cyan:    { accent: '#22d3ee', border: 'rgba(34,211,238,0.2)',   bg: 'rgba(34,211,238,0.06)'   },
-  emerald: { accent: '#34d399', border: 'rgba(52,211,153,0.2)',   bg: 'rgba(52,211,153,0.06)'   },
-  amber:   { accent: '#fbbf24', border: 'rgba(251,191,36,0.2)',   bg: 'rgba(251,191,36,0.06)'   },
-  blue:    { accent: '#60a5fa', border: 'rgba(96,165,250,0.2)',   bg: 'rgba(96,165,250,0.06)'   },
-  purple:  { accent: '#a78bfa', border: 'rgba(167,139,250,0.2)',  bg: 'rgba(167,139,250,0.06)'  },
-  red:     { accent: '#f87171', border: 'rgba(248,113,113,0.2)',  bg: 'rgba(248,113,113,0.06)'  },
+  cyan:    { accent: '#00bcd4', border: 'rgba(0,188,212,0.16)',  bg: 'rgba(0,188,212,0.06)'  },
+  emerald: { accent: '#10b981', border: 'rgba(16,185,129,0.16)', bg: 'rgba(16,185,129,0.06)' },
+  amber:   { accent: '#f59e0b', border: 'rgba(245,158,11,0.16)', bg: 'rgba(245,158,11,0.06)' },
+  blue:    { accent: '#3b82f6', border: 'rgba(59,130,246,0.16)', bg: 'rgba(59,130,246,0.06)' },
+  purple:  { accent: '#8b5cf6', border: 'rgba(139,92,246,0.16)', bg: 'rgba(139,92,246,0.06)' },
+  red:     { accent: '#ef4444', border: 'rgba(239,68,68,0.16)',  bg: 'rgba(239,68,68,0.06)'  },
 }
 
 export default function SummaryCard({ label, value, icon, trend, color = 'cyan' }) {
   const c = PALETTE[color] ?? PALETTE.cyan
   return (
     <div
-      className="rounded-2xl p-5 flex flex-col gap-4 transition-all cursor-default hover:brightness-105"
+      className="flex flex-col cursor-default transition-all"
       style={{
-        background: `color-mix(in srgb, var(--bg-surface) 85%, ${c.accent}10)`,
+        padding: '18px 20px',
+        borderRadius: 12,
+        background: 'var(--bg-surface)',
         border: `1px solid ${c.border}`,
+        boxShadow: 'var(--shadow-card)',
       }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = 'var(--shadow-card)'}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--text-faint)' }}>
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-semibold uppercase" style={{ fontSize: 10.5, letterSpacing: '0.09em', color: 'var(--text-faint)' }}>
           {label}
         </p>
-        <span className="text-[18px] opacity-60">{icon}</span>
+        <div className="flex items-center justify-center rounded-lg flex-shrink-0"
+          style={{ width: 30, height: 30, background: c.bg, border: `1px solid ${c.border}`, color: c.accent, fontSize: 14 }}>
+          {icon}
+        </div>
       </div>
-      <div>
-        <p className="text-[34px] font-bold leading-none tracking-tight" style={{ color: c.accent }}>
-          {value}
-        </p>
-        {trend && (
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.accent }} />
-            <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{trend}</p>
-          </div>
-        )}
-      </div>
+      <p className="font-bold leading-none tabular-nums" style={{ fontSize: 30, letterSpacing: '-0.03em', color: c.accent }}>
+        {value}
+      </p>
+      {trend && (
+        <div className="flex items-center gap-1.5 mt-2.5">
+          <span className="rounded-full" style={{ width: 4, height: 4, background: c.accent, opacity: 0.5 }} />
+          <p style={{ fontSize: 11, color: 'var(--text-faint)' }}>{trend}</p>
+        </div>
+      )}
     </div>
   )
 }

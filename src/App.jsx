@@ -23,7 +23,7 @@ function AppShell({ children }) {
   return (
     <div className="flex min-h-screen transition-colors duration-200" style={{ background: 'var(--bg-base)' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col ml-[220px] min-h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      <div className="flex-1 flex flex-col ml-[232px] min-h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
         {children}
       </div>
     </div>

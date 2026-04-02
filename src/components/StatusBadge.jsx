@@ -1,19 +1,33 @@
 const MAP = {
-  Confirmed:        { text: 'text-emerald-400', bg: 'bg-emerald-400/[0.1]',  border: 'border-emerald-400/20', dot: 'bg-emerald-400' },
-  Online:           { text: 'text-emerald-400', bg: 'bg-emerald-400/[0.1]',  border: 'border-emerald-400/20', dot: 'bg-emerald-400' },
-  Pending:          { text: 'text-amber-400',   bg: 'bg-amber-400/[0.1]',    border: 'border-amber-400/20',   dot: 'bg-amber-400'   },
-  Warning:          { text: 'text-amber-400',   bg: 'bg-amber-400/[0.1]',    border: 'border-amber-400/20',   dot: 'bg-amber-400'   },
-  Offline:          { text: 'text-red-400',     bg: 'bg-red-400/[0.1]',      border: 'border-red-400/20',     dot: 'bg-red-400'     },
-  Good:             { text: 'text-emerald-400', bg: 'bg-emerald-400/[0.1]',  border: 'border-emerald-400/20', dot: 'bg-emerald-400' },
-  'Check Required': { text: 'text-amber-400',   bg: 'bg-amber-400/[0.1]',    border: 'border-amber-400/20',   dot: 'bg-amber-400'   },
+  Confirmed:        { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
+  Online:           { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
+  Pending:          { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
+  Warning:          { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
+  Offline:          { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)'   },
+  Good:             { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
+  'Check Required': { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
 }
-const DEFAULT = { text: 'text-slate-400', bg: 'bg-slate-400/[0.1]', border: 'border-slate-400/20', dot: 'bg-slate-400' }
+const DEFAULT = { color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' }
 
 export default function StatusBadge({ status, pulse = false }) {
   const s = MAP[status] ?? DEFAULT
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${s.text} ${s.bg} ${s.border}`}>
-      <span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${s.dot} ${pulse ? 'animate-pulse' : ''}`} />
+    <span
+      className="inline-flex items-center gap-[5px] rounded-md"
+      style={{
+        fontSize: 'var(--t-micro)',
+        fontWeight: 'var(--fw-semibold)',
+        letterSpacing: '0.04em',
+        padding: '3px 8px',
+        color: s.color,
+        background: s.bg,
+        border: `1px solid ${s.border}`,
+      }}
+    >
+      <span
+        className={`rounded-full flex-shrink-0 ${pulse ? 'animate-pulse' : ''}`}
+        style={{ width: 5, height: 5, background: s.color }}
+      />
       {status}
     </span>
   )

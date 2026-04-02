@@ -1,25 +1,48 @@
-export default function SensorCard({ title, value, unit, icon, accent = '#22d3ee' }) {
+export default function SensorCard({ title, value, unit, icon, accent = '#00bcd4' }) {
   return (
     <div
-      className="rounded-2xl p-5 flex items-center gap-4 transition-all hover:brightness-105 cursor-default"
+      className="flex items-center gap-4 cursor-default transition-all"
       style={{
+        padding: '18px 20px',
+        borderRadius: 12,
         background: 'var(--bg-surface)',
-        border: `1px solid ${accent}25`,
+        border: `1px solid ${accent}22`,
+        boxShadow: 'var(--shadow-sm)',
       }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
     >
       <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-        style={{ background: `${accent}12` }}
+        className="flex items-center justify-center flex-shrink-0"
+        style={{ width: 42, height: 42, borderRadius: 10, background: `${accent}10`, border: `1px solid ${accent}20`, fontSize: 20 }}
       >
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: 'var(--text-faint)' }}>
+      <div className="min-w-0 flex-1">
+        <p style={{
+          fontSize: 'var(--t-label)',
+          fontWeight: 'var(--fw-semibold)',
+          letterSpacing: 'var(--ls-label)',
+          textTransform: 'uppercase',
+          color: 'var(--text-faint)',
+          marginBottom: 6,
+        }}>
           {title}
         </p>
-        <p className="text-[24px] font-bold leading-none tabular-nums" style={{ color: accent }}>
+        <p style={{
+          fontSize: 'var(--t-data-md)',
+          fontWeight: 'var(--fw-bold)',
+          letterSpacing: 'var(--ls-tight)',
+          lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+          color: accent,
+        }}>
           {value}
-          {unit && <span className="text-[13px] font-normal ml-1" style={{ color: 'var(--text-muted)' }}>{unit}</span>}
+          {unit && (
+            <span style={{ fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', marginLeft: 4, color: 'var(--text-muted)' }}>
+              {unit}
+            </span>
+          )}
         </p>
       </div>
     </div>

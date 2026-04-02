@@ -39,8 +39,8 @@ export default function Dashboard() {
         action={
           <button
             onClick={() => navigate('/installations/new')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all active:scale-[0.97]"
-            style={{ background: 'var(--accent)', color: '#020617', boxShadow: '0 4px 14px rgba(34,211,238,0.25)' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all active:scale-[0.97]"
+            style={{ fontSize: 'var(--t-body-sm)', background: 'var(--accent)', color: '#020617', boxShadow: '0 2px 10px var(--accent-glow)' }}
           >
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1V10M1 5.5H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             New Installation
@@ -53,17 +53,19 @@ export default function Dashboard() {
         {/* Welcome */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-[20px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <h2 style={{ fontSize: 'var(--t-h2)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--ls-tight)', color: 'var(--text-primary)', marginBottom: 6 }}>
               {greeting}, {user?.name?.split(' ')[0]}
             </h2>
-            <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
               Here's what's happening across your network today.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <div
+            className="flex items-center gap-2 rounded-lg px-3 py-1.5"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: 'var(--success)' }} />
+            <span style={{ fontSize: 'var(--t-caption)', color: 'var(--text-muted)' }}>
               Live · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
@@ -84,12 +86,11 @@ export default function Dashboard() {
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
-                <h3 className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>Recent Installations</h3>
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>Latest field deployment records</p>
+                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Recent Installations</h3>
+                <p style={{ fontSize: 'var(--t-caption)', marginTop: 3, color: 'var(--text-faint)' }}>Latest field deployment records</p>
               </div>
               <button onClick={() => navigate('/install-records')}
-                className="text-[11px] flex items-center gap-1 transition-colors"
-                style={{ color: 'var(--accent)' }}>
+                style={{ fontSize: 'var(--t-caption)', fontWeight: 'var(--fw-medium)', color: 'var(--accent)' }}>
                 View all →
               </button>
             </div>
@@ -112,16 +113,16 @@ export default function Dashboard() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td className="px-6 py-3.5">
-                      <span className="font-mono text-[11px] font-medium" style={{ color: 'var(--accent)' }}>{r.id}</span>
+                      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-caption)', fontWeight: 'var(--fw-semibold)', color: 'var(--accent)' }}>{r.id}</span>
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className="text-[12px]" style={{ color: 'var(--text-faint)' }}>{r.date}</span>
+                      <span style={{ fontSize: 'var(--t-body-sm)', color: 'var(--text-faint)' }}>{r.date}</span>
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{r.installer}</span>
+                      <span style={{ fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-secondary)' }}>{r.installer}</span>
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>{r.towerId}</span>
+                      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-caption)', color: 'var(--text-faint)' }}>{r.towerId}</span>
                     </td>
                     <td className="px-6 py-3.5"><StatusBadge status={r.status} /></td>
                   </tr>
@@ -135,7 +136,7 @@ export default function Dashboard() {
             {/* Alerts */}
             <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
               <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-                <h3 className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>System Alerts</h3>
+                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>System Alerts</h3>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
                   style={{ background: 'var(--bg-elevated)', color: 'var(--text-faint)', border: '1px solid var(--border)' }}>
                   {systemAlerts.length} active
@@ -149,8 +150,8 @@ export default function Dashboard() {
                       style={{ background: m.bg, border: `1px solid ${m.border}` }}>
                       <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.bar }} />
                       <div className="pl-2">
-                        <p className="text-[12px] font-medium" style={{ color: m.text }}>{a.msg}</p>
-                        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>{a.site}</p>
+                        <p style={{ fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: m.text }}>{a.msg}</p>
+                        <p style={{ fontSize: 'var(--t-caption)', marginTop: 3, color: 'var(--text-faint)' }}>{a.site}</p>
                       </div>
                     </div>
                   )
@@ -161,7 +162,7 @@ export default function Dashboard() {
             {/* Quick devices */}
             <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-                <h3 className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>Quick Device Access</h3>
+                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Quick Device Access</h3>
               </div>
               <div className="p-3 flex flex-col gap-1.5">
                 {devices.slice(0, 4).map(d => (
@@ -175,8 +176,8 @@ export default function Dashboard() {
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]"
                         style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>◉</div>
                       <div>
-                        <p className="text-[12px] font-medium font-mono" style={{ color: 'var(--text-secondary)' }}>{d.serial}</p>
-                        <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>{d.tower}</p>
+                        <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-secondary)' }}>{d.serial}</p>
+                        <p style={{ fontSize: 'var(--t-caption)', color: 'var(--text-faint)' }}>{d.tower}</p>
                       </div>
                     </div>
                     <StatusBadge status={d.status} pulse={d.status === 'Online'} />

@@ -4,13 +4,6 @@ import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
 import { useAppData } from '../context/AppDataContext'
 
-const T = {
-  page:    { background: 'var(--bg-base)' },
-  surface: { background: 'var(--bg-surface)', border: '1px solid var(--border)' },
-  elevated:{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' },
-  input:   { background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' },
-}
-
 export default function InstallRecords() {
   const { installations } = useAppData()
   const navigate = useNavigate()
@@ -38,15 +31,15 @@ export default function InstallRecords() {
   ]
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 transition-colors duration-200" style={T.page}>
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
       <Header
         title="Install Records"
         subtitle={`${installations.length} total installation records`}
         action={
           <button
             onClick={() => navigate('/installations/new')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all active:scale-[0.97]"
-            style={{ background: 'var(--accent)', color: '#020617', boxShadow: '0 4px 14px rgba(34,211,238,0.2)' }}
+            className="t-nav flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all active:scale-[0.97]"
+            style={{ background: 'var(--accent)', color: '#020617', boxShadow: '0 4px 14px var(--accent-glow)' }}
           >
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1V10M1 5.5H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             New
@@ -55,7 +48,7 @@ export default function InstallRecords() {
       />
       <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
 
-        {/* Filter + search bar */}
+        {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
           {filterBtns.map(f => {
             const isActive = statusFilter === f.label
@@ -63,14 +56,14 @@ export default function InstallRecords() {
               <button
                 key={f.label}
                 onClick={() => setStatusFilter(f.label)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12px] font-medium transition-all"
+                className="t-nav flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium transition-all"
                 style={isActive
                   ? { background: f.accent ? `${f.accent}15` : 'var(--bg-active)', color: f.accent ?? 'var(--text-primary)', border: `1px solid ${f.accent ? f.accent + '40' : 'var(--border)'}` }
                   : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                 }
               >
                 {f.label}
-                <span className="text-[10px] opacity-60">{f.count}</span>
+                <span className="t-micro opacity-60">{f.count}</span>
               </button>
             )
           })}
@@ -84,8 +77,8 @@ export default function InstallRecords() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search records…"
-              className="rounded-lg pl-9 pr-4 py-2 text-[13px] outline-none transition-all w-56"
-              style={T.input}
+              className="t-nav rounded-lg pl-9 pr-4 py-2 outline-none transition-all w-56"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               onFocus={e => e.target.style.borderColor = 'var(--accent-border)'}
               onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
@@ -93,21 +86,20 @@ export default function InstallRecords() {
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl overflow-hidden" style={T.surface}>
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
                   {['Record ID', 'Date', 'Engineer', 'Company', 'Site Owner', 'Tower ID', 'Serial', 'Height', 'Status'].map(h => (
-                    <th key={h} className="text-left px-5 py-3.5 text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"
-                      style={{ color: 'var(--text-faint)' }}>{h}</th>
+                    <th key={h} className="text-left px-5 py-3.5 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-16 text-[13px]" style={{ color: 'var(--text-faint)' }}>
+                    <td colSpan={9} className="text-center py-16 t-body" style={{ color: 'var(--text-faint)' }}>
                       No records match your search
                     </td>
                   </tr>
@@ -120,14 +112,20 @@ export default function InstallRecords() {
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td className="px-5 py-3.5"><span className="font-mono text-[11px] font-medium" style={{ color: 'var(--accent)' }}>{row.id}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-[12px]" style={{ color: 'var(--text-faint)' }}>{row.date}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{row.installer}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{row.company}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{row.siteOwner}</span></td>
-                    <td className="px-5 py-3.5"><span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>{row.towerId}</span></td>
-                    <td className="px-5 py-3.5"><span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>{row.sensorSerial}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{row.installHeight}m</span></td>
+                    <td className="px-5 py-3.5">
+                      <span className="t-micro font-semibold font-mono" style={{ color: 'var(--accent)' }}>{row.id}</span>
+                    </td>
+                    <td className="px-5 py-3.5 t-caption" style={{ color: 'var(--text-faint)' }}>{row.date}</td>
+                    <td className="px-5 py-3.5 t-body-sm font-medium" style={{ color: 'var(--text-primary)' }}>{row.installer}</td>
+                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.company}</td>
+                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.siteOwner}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="t-micro font-mono" style={{ color: 'var(--text-muted)' }}>{row.towerId}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="t-micro font-mono" style={{ color: 'var(--text-muted)' }}>{row.sensorSerial}</span>
+                    </td>
+                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.installHeight}m</td>
                     <td className="px-5 py-3.5"><StatusBadge status={row.status} /></td>
                   </tr>
                 ))}
@@ -135,7 +133,7 @@ export default function InstallRecords() {
             </table>
           </div>
           <div className="px-5 py-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-            <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{filtered.length} of {installations.length} records</p>
+            <p className="t-caption" style={{ color: 'var(--text-faint)' }}>{filtered.length} of {installations.length} records</p>
           </div>
         </div>
       </div>

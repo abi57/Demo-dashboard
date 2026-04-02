@@ -17,26 +17,26 @@ const inputStyle = {
 function Input({ label, required, error, children }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--text-faint)' }}>
+      <label className="t-label" style={{ color: 'var(--text-faint)' }}>
         {label}{required && <span className="text-red-400 ml-1">*</span>}
       </label>
       {children}
-      {error && <span className="text-red-400 text-[11px]">{error}</span>}
+      {error && <span className="t-caption" style={{ color: 'var(--danger)' }}>{error}</span>}
     </div>
   )
 }
 
 function Section({ step, title, subtitle, children }) {
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
       <div className="px-6 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center t-micro font-bold flex-shrink-0"
           style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>
           {step}
         </div>
         <div>
-          <h3 className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-          {subtitle && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>{subtitle}</p>}
+          <h4 style={{ color: 'var(--text-primary)' }}>{title}</h4>
+          {subtitle && <p className="t-caption mt-0.5" style={{ color: 'var(--text-faint)' }}>{subtitle}</p>}
         </div>
       </div>
       <div className="p-6">{children}</div>
@@ -44,7 +44,7 @@ function Section({ step, title, subtitle, children }) {
   )
 }
 
-const cls = "w-full rounded-xl px-4 py-2.5 text-[13px] outline-none transition-all"
+const cls = "w-full rounded-xl px-4 py-2.5 t-body-sm outline-none transition-all"
 
 export default function NewInstallation() {
   const { addInstallation } = useAppData()
@@ -242,12 +242,12 @@ export default function NewInstallation() {
 
           <div className="flex items-center justify-end gap-3 pb-4">
             <button type="button" onClick={() => navigate(-1)}
-              className="px-5 py-2.5 rounded-xl text-[13px] transition-all"
+              className="t-body-sm px-5 py-2.5 rounded-xl transition-all"
               style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', background: 'var(--bg-surface)' }}>
               Cancel
             </button>
             <button type="submit" disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-[13px] transition-all active:scale-[0.97] disabled:opacity-40"
+              className="t-body-sm flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all active:scale-[0.97] disabled:opacity-40"
               style={{ background: 'var(--accent)', color: '#020617', boxShadow: '0 4px 14px rgba(34,211,238,0.2)' }}>
               {submitting ? (
                 <><span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(2,6,23,0.3)', borderTopColor: '#020617' }} /> Saving…</>
