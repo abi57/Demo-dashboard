@@ -1,142 +1,130 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Search, Download, ChevronUp, ChevronDown } from 'lucide-react'
+import AppShell from '../components/AppShell'
 import StatusBadge from '../components/StatusBadge'
-import { useAppData } from '../context/AppDataContext'
+import SerialBadge from '../components/SerialBadge'
+import { useApp } from '../context/AppContext'
+
+const PAGE_SIZE = 20
 
 export default function InstallRecords() {
-  const { installations } = useAppData()
+  const { installations } = useApp()
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [params] = useSearchParams()
+  const [search, setSearch] = useState(params.get('q') ?? '')
+  const [filter, setFilter] = useState('all')
+  const [sort, setSort] = useState({ col: 'submitted', dir: 'desc' })
+  const [page, setPage] = useState(0)
 
   const filtered = installations.filter(r => {
     const q = search.toLowerCase()
-    const matchSearch = !q || [r.id, r.installer, r.company, r.siteOwner, r.towerId, r.sensorSerial]
-      .some(v => v?.toLowerCase().includes(q))
-    const matchStatus = statusFilter === 'All' || r.status === statusFilter
-    return matchSearch && matchStatus
+    const matchSearch = !q || [r.installerName, r.towerId, r.siteOwner, r.company, ...r.sensorSerials].some(v => v?.toLowerCase().includes(q))
+    const matchFilter = filter === 'all' || r.status === filter ||
+      (filter === 'today' && r.dateInstalled === new Date().toISOString().split('T')[0]) ||
+      (filter === 'week' && new Date(r.dateInstalled) >= new Date(Date.now() - 7 * 86400000))
+    return matchSearch && matchFilter
+  }).sort((a, b) => {
+    const va = a[sort.col] ?? '', vb = b[sort.col] ?? ''
+    return sort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
   })
 
-  const counts = ['Confirmed', 'Pending', 'Warning'].reduce((acc, s) => {
-    acc[s] = installations.filter(i => i.status === s).length
-    return acc
-  }, {})
+  const pages = Math.ceil(filtered.length / PAGE_SIZE)
+  const rows  = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  const filterBtns = [
-    { label: 'All',       count: installations.length, accent: null },
-    { label: 'Confirmed', count: counts.Confirmed,     accent: '#34d399' },
-    { label: 'Pending',   count: counts.Pending,       accent: '#fbbf24' },
-    { label: 'Warning',   count: counts.Warning,       accent: '#f87171' },
+  function toggleSort(col) {
+    setSort(s => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })
+    setPage(0)
+  }
+
+  const SortIcon = ({ col }) => sort.col === col
+    ? (sort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)
+    : <ChevronDown size={12} style={{ opacity: 0.3 }} />
+
+  const FILTERS = [
+    { key: 'all', label: 'All' }, { key: 'confirmed', label: 'Confirmed' },
+    { key: 'pending', label: 'Pending' }, { key: 'today', label: 'Today' }, { key: 'week', label: 'This Week' },
   ]
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header
-        title="Install Records"
-        subtitle={`${installations.length} total installation records`}
-        action={
-          <button
-            onClick={() => navigate('/installations/new')}
-            className="t-nav flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all active:scale-[0.97]"
-            style={{ background: 'var(--accent)', color: '#020617', boxShadow: '0 4px 14px var(--accent-glow)' }}
-          >
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1V10M1 5.5H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            New
-          </button>
-        }
-      />
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
-
-        {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {filterBtns.map(f => {
-            const isActive = statusFilter === f.label
-            return (
-              <button
-                key={f.label}
-                onClick={() => setStatusFilter(f.label)}
-                className="t-nav flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium transition-all"
-                style={isActive
-                  ? { background: f.accent ? `${f.accent}15` : 'var(--bg-active)', color: f.accent ?? 'var(--text-primary)', border: `1px solid ${f.accent ? f.accent + '40' : 'var(--border)'}` }
-                  : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                }
-              >
-                {f.label}
-                <span className="t-micro opacity-60">{f.count}</span>
-              </button>
-            )
-          })}
-          <div className="flex-1" />
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 15 15" fill="none" style={{ color: 'var(--text-faint)' }}>
-              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.3"/>
-              <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            </svg>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search records…"
-              className="t-nav rounded-lg pl-9 pr-4 py-2 outline-none transition-all w-56"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-              onFocus={e => e.target.style.borderColor = 'var(--accent-border)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
-            />
-          </div>
+    <AppShell title="Install Records">
+      {/* Filter bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 320 }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--vio-text-muted)', pointerEvents: 'none' }} />
+          <input className="vio-input" style={{ paddingLeft: 36 }} placeholder="Search installer, tower, serial…"
+            value={search} onChange={e => { setSearch(e.target.value); setPage(0) }} />
         </div>
-
-        {/* Table */}
-        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-                  {['Record ID', 'Date', 'Engineer', 'Company', 'Site Owner', 'Tower ID', 'Serial', 'Height', 'Status'].map(h => (
-                    <th key={h} className="text-left px-5 py-3.5 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-16 t-body" style={{ color: 'var(--text-faint)' }}>
-                      No records match your search
-                    </td>
-                  </tr>
-                ) : filtered.map(row => (
-                  <tr
-                    key={row.id}
-                    onClick={() => navigate(`/install-records/${row.id}`)}
-                    className="cursor-pointer transition-colors"
-                    style={{ borderBottom: '1px solid var(--border-soft)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td className="px-5 py-3.5">
-                      <span className="t-micro font-semibold font-mono" style={{ color: 'var(--accent)' }}>{row.id}</span>
-                    </td>
-                    <td className="px-5 py-3.5 t-caption" style={{ color: 'var(--text-faint)' }}>{row.date}</td>
-                    <td className="px-5 py-3.5 t-body-sm font-medium" style={{ color: 'var(--text-primary)' }}>{row.installer}</td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.company}</td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.siteOwner}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="t-micro font-mono" style={{ color: 'var(--text-muted)' }}>{row.towerId}</span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="t-micro font-mono" style={{ color: 'var(--text-muted)' }}>{row.sensorSerial}</span>
-                    </td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{row.installHeight}m</td>
-                    <td className="px-5 py-3.5"><StatusBadge status={row.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-5 py-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-            <p className="t-caption" style={{ color: 'var(--text-faint)' }}>{filtered.length} of {installations.length} records</p>
-          </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {FILTERS.map(f => (
+            <button key={f.key} onClick={() => { setFilter(f.key); setPage(0) }}
+              className={`vio-btn vio-btn-sm ${filter === f.key ? 'vio-btn-primary' : 'vio-btn-ghost'}`}>
+              {f.label}
+            </button>
+          ))}
         </div>
+        <div style={{ flex: 1 }} />
+        <button className="vio-btn vio-btn-secondary vio-btn-sm" style={{ gap: 6 }}>
+          <Download size={14} /> Export CSV
+        </button>
       </div>
-    </div>
+
+      {/* Table */}
+      <div className="vio-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="vio-table">
+            <thead>
+              <tr>
+                {[
+                  ['submitted','Submitted'],['dateInstalled','Date'],['installerName','Installer'],
+                  ['company','Company'],['siteOwner','Site Owner'],['towerId','Tower ID'],
+                  [null,'Sensor Serial'],['heightAGL','Height'],
+                  [null,'Secure Fixing'],[null,'Data Flow'],[null,'Photos'],[null,''],
+                ].map(([col, label]) => (
+                  <th key={label} onClick={col ? () => toggleSort(col) : undefined} style={{ cursor: col ? 'pointer' : 'default' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {label} {col && <SortIcon col={col} />}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr><td colSpan={12} style={{ textAlign: 'center', padding: 48, color: 'var(--vio-text-muted)' }}>
+                  No installation records found.
+                </td></tr>
+              ) : rows.map(r => (
+                <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/install-records/${r.id}`)}>
+                  <td className="vio-cell" style={{ whiteSpace: 'nowrap' }}>{r.submitted}</td>
+                  <td className="vio-cell" style={{ whiteSpace: 'nowrap' }}>{r.dateInstalled}</td>
+                  <td className="vio-cell" style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.installerName}</td>
+                  <td className="vio-cell" style={{ whiteSpace: 'nowrap' }}>{r.company}</td>
+                  <td className="vio-cell" style={{ whiteSpace: 'nowrap' }}>{r.siteOwner}</td>
+                  <td className="vio-cell vio-mono" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{r.towerId}</td>
+                  <td><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{r.sensorSerials.map(s => <SerialBadge key={s} serial={s} />)}</div></td>
+                  <td className="vio-cell" style={{ whiteSpace: 'nowrap' }}>{r.heightAGL} m</td>
+                  <td><StatusBadge status={r.secureFixing ? 'yes' : 'no'} /></td>
+                  <td><StatusBadge status={r.dataFlow ? 'confirmed' : 'failed'} /></td>
+                  <td className="vio-cell">{r.photos?.length > 0 ? <span style={{ color: 'var(--vio-accent)', fontWeight: 500, cursor: 'pointer' }}>{r.photos.length} photos</span> : '—'}</td>
+                  <td><button className="vio-btn vio-btn-ghost vio-btn-sm" onClick={e => { e.stopPropagation(); navigate(`/install-records/${r.id}`) }}>View</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {pages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '0.5px solid var(--vio-card-border)' }}>
+            <span style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>{filtered.length} records</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="vio-btn vio-btn-ghost vio-btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--vio-text-secondary)', padding: '0 8px', lineHeight: '32px' }}>{page + 1} / {pages}</span>
+              <button className="vio-btn vio-btn-ghost vio-btn-sm" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </AppShell>
   )
 }

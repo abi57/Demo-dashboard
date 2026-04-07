@@ -1,112 +1,157 @@
-import Header from '../components/Header'
+import { useState, Fragment } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useToast } from '../context/ToastContext'
+import AppShell from '../components/AppShell'
+import { LogOut } from 'lucide-react'
 
-const Section = ({ title, desc, children }) => (
-  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
-    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-      <h4 style={{ color: 'var(--text-primary)' }}>{title}</h4>
-      {desc && <p className="t-caption mt-1" style={{ color: 'var(--text-faint)' }}>{desc}</p>}
-    </div>
-    <div>{children}</div>
-  </div>
-)
+const DEFAULT_THRESHOLDS = [
+  { metric: 'Resonant Frequency', unit: 'Hz',         warnLow: 2.0,  warnHigh: 6.5,  critLow: 1.0,  critHigh: 8.0,  enabled: true  },
+  { metric: 'Peak Acceleration',  unit: 'g',          warnLow: null, warnHigh: 0.25, critLow: null, critHigh: 0.5,  enabled: true  },
+  { metric: 'Tilt X',             unit: '°',          warnLow: -1.5, warnHigh: 1.5,  critLow: -2.5, critHigh: 2.5,  enabled: true  },
+  { metric: 'Tilt Y',             unit: '°',          warnLow: -1.5, warnHigh: 1.5,  critLow: -2.5, critHigh: 2.5,  enabled: true  },
+  { metric: 'Wire Tension',       unit: 'kN',         warnLow: 35,   warnHigh: 55,   critLow: 30,   critHigh: 60,   enabled: false },
+  { metric: 'Battery',            unit: '%',          warnLow: 20,   warnHigh: null, critLow: 10,   critHigh: null, enabled: true  },
+]
 
-const Row = ({ label, desc, children }) => (
-  <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-    <div>
-      <p className="t-body-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-      {desc && <p className="t-caption mt-0.5" style={{ color: 'var(--text-faint)' }}>{desc}</p>}
-    </div>
-    <div className="flex-shrink-0 ml-8">{children}</div>
-  </div>
-)
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme()
+function Section({ title, children }) {
   return (
-    <div className="flex rounded-xl overflow-hidden p-1 gap-1"
-      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-      {[
-        { value: 'dark',  label: 'Dark',  icon: <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M13 9.5A6 6 0 015.5 2a6 6 0 100 11 6 6 0 007.5-3.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg> },
-        { value: 'light', label: 'Light', icon: <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M7.5 1V2.5M7.5 12.5V14M1 7.5H2.5M12.5 7.5H14M3 3L4 4M11 11L12 12M3 12L4 11M11 4L12 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> },
-      ].map(opt => {
-        const active = theme === opt.value
-        return (
-          <button key={opt.value} onClick={() => { if (!active) toggle() }}
-            className="t-nav flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all"
-            style={active
-              ? { background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }
-              : { color: 'var(--text-muted)', border: '1px solid transparent' }
-            }>
-            {opt.icon}{opt.label}
-          </button>
-        )
-      })}
+    <div className="vio-card" style={{ marginBottom: 16 }}>
+      <p className="vio-section-label">{title}</p>
+      {children}
     </div>
   )
 }
 
 export default function Settings() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const { isDark, toggle } = useTheme()
+  const { push } = useToast()
+  const navigate = useNavigate()
+  const [profile, setProfile] = useState({ name: user?.name ?? '', company: user?.company ?? '', email: user?.email ?? '' })
+  const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS)
+  const [thresholdErrors, setThresholdErrors] = useState({})
+
+  function updateT(i, field, val) {
+    setThresholds(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: val === '' ? null : Number(val) } : t))
+    setThresholdErrors(e => ({ ...e, [i]: undefined }))
+  }
+
+  function saveThresholds() {
+    const errs = {}
+    thresholds.forEach((t, i) => {
+      if (t.warnHigh !== null && t.critHigh !== null && t.critHigh <= t.warnHigh) errs[i] = 'Critical high must exceed warning high'
+      if (t.warnLow !== null && t.critLow !== null && t.critLow >= t.warnLow) errs[i] = 'Critical low must be below warning low'
+    })
+    if (Object.keys(errs).length) { setThresholdErrors(errs); return }
+    push('Thresholds saved successfully', 'success')
+  }
+
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header title="Settings" subtitle="Platform configuration and preferences" />
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-2xl flex flex-col gap-5">
-
-          <Section title="Account" desc="Your profile and access level">
-            <Row label="Display Name" desc="Shown across the platform">
-              <span className="t-body-sm" style={{ color: 'var(--text-muted)' }}>{user?.name}</span>
-            </Row>
-            <Row label="Role" desc="Determines your access permissions">
-              <span className={`t-micro font-semibold px-2.5 py-1 rounded-md border capitalize ${
-                user?.role === 'admin' ? 'text-violet-400 bg-violet-400/[0.1] border-violet-400/20' : 'text-blue-400 bg-blue-400/[0.1] border-blue-400/20'
-              }`}>{user?.role}</span>
-            </Row>
-            <Row label="Session" desc="Current authentication session">
-              <span className="t-micro font-semibold text-emerald-400 bg-emerald-400/[0.08] border border-emerald-400/20 px-2.5 py-1 rounded-md">Active</span>
-            </Row>
-          </Section>
-
-          <Section title="Appearance" desc="Customize the look of the platform">
-            <Row label="Theme" desc="Switch between dark and light interface">
-              <ThemeToggle />
-            </Row>
-          </Section>
-
-          <Section title="Platform" desc="Data and display preferences">
-            <Row label="Data Refresh Rate" desc="How often live sensor readings update">
-              <select className="t-nav rounded-lg px-3 py-1.5 outline-none cursor-pointer"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                <option>3 seconds</option>
-                <option>5 seconds</option>
-                <option>10 seconds</option>
-              </select>
-            </Row>
-            <Row label="Alert Notifications" desc="Toast alerts for device status changes">
-              <div className="w-9 h-5 rounded-full relative cursor-pointer flex-shrink-0" style={{ background: 'var(--accent)' }}>
-                <div className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow-sm" />
-              </div>
-            </Row>
-          </Section>
-
-          <Section title="About">
-            <Row label="Platform Version">
-              <span className="t-body-sm font-mono" style={{ color: 'var(--text-muted)' }}>v1.0.0</span>
-            </Row>
-            <Row label="Product">
-              <span className="t-body-sm" style={{ color: 'var(--text-muted)' }}>Viotel IoT Platform</span>
-            </Row>
-            <Row label="Environment">
-              <span className="t-micro font-semibold font-mono px-2.5 py-1 rounded-md"
-                style={{ color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)' }}>
-                Production
-              </span>
-            </Row>
-          </Section>
+    <AppShell title="Settings">
+      {/* Profile */}
+      <Section title="Profile">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          {[['name','Full Name','text'],['company','Company','text'],['email','Email','email']].map(([k, label, type]) => (
+            <div key={k} style={k === 'email' ? { gridColumn: '1 / -1' } : {}}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>{label}</label>
+              <input className="vio-input" type={type} value={profile[k]} onChange={e => setProfile(p => ({ ...p, [k]: e.target.value }))} />
+            </div>
+          ))}
         </div>
-      </div>
-    </div>
+        <button className="vio-btn vio-btn-primary" onClick={() => push('Profile saved', 'success')}>Save profile</button>
+      </Section>
+
+      {/* Appearance */}
+      <Section title="Appearance">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--vio-text-primary)' }}>Theme</p>
+            <p style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>Currently: {isDark ? 'Dark' : 'Light'}</p>
+          </div>
+          <button className="vio-btn vio-btn-secondary" onClick={toggle}>
+            Switch to {isDark ? 'Light' : 'Dark'} mode
+          </button>
+        </div>
+      </Section>
+
+      {/* Notifications */}
+      <Section title="Notifications">
+        {[['Email alerts','Receive alerts via email'],['In-app alerts','Show alerts in the dashboard'],].map(([label, desc]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid var(--vio-card-border)' }}>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--vio-text-primary)' }}>{label}</p>
+              <p style={{ fontSize: 12, color: 'var(--vio-text-muted)' }}>{desc}</p>
+            </div>
+            <label style={{ position: 'relative', display: 'inline-block', width: 40, height: 22, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ opacity: 0, width: 0, height: 0 }} />
+              <span style={{ position: 'absolute', inset: 0, background: '#0b3d4a', borderRadius: 99, transition: '0.2s' }}>
+                <span style={{ position: 'absolute', top: 3, left: 20, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: '0.2s' }} />
+              </span>
+            </label>
+          </div>
+        ))}
+        <div style={{ padding: '10px 0' }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 8 }}>Minimum severity</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['Info','Warning','Critical'].map(s => (
+              <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                <input type="radio" name="minSev" defaultChecked={s === 'Warning'} style={{ accentColor: '#0b3d4a' }} /> {s}
+              </label>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* Thresholds */}
+      <Section title="Threshold Configuration">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="vio-table">
+            <thead>
+              <tr>{['Metric','Unit','Warn Low','Warn High','Crit Low','Crit High','Enabled'].map(h => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {thresholds.map((t, i) => (
+                <Fragment key={t.metric}>
+                  <tr>
+                    <td style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)', whiteSpace: 'nowrap' }}>{t.metric}</td>
+                    <td className="vio-cell vio-mono" style={{ fontSize: 12 }}>{t.unit}</td>
+                    {['warnLow','warnHigh','critLow','critHigh'].map(f => (
+                      <td key={f}>
+                        <input type="number" className="vio-input" style={{ width: 80, height: 32, fontSize: 12, textAlign: 'right' }}
+                          value={t[f] ?? ''} onChange={e => updateT(i, f, e.target.value)} placeholder="—" />
+                      </td>
+                    ))}
+                    <td>
+                      <button onClick={() => setThresholds(p => p.map((th, idx) => idx === i ? { ...th, enabled: !th.enabled } : th))}
+                        style={{ width: 36, height: 20, borderRadius: 99, border: 'none', cursor: 'pointer', background: t.enabled ? '#0b3d4a' : '#d1d5db', position: 'relative', transition: 'background 0.2s' }}>
+                        <span style={{ position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', left: t.enabled ? 18 : 2, transition: 'left 0.2s' }} />
+                      </button>
+                    </td>
+                  </tr>
+                  {thresholdErrors[i] && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '4px 16px 8px', fontSize: 12, color: '#dc2626' }}>⚠ {thresholdErrors[i]}</td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
+          <button onClick={() => { setThresholds(DEFAULT_THRESHOLDS); setThresholdErrors({}) }} style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--vio-text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>Reset to defaults</button>
+          <button className="vio-btn vio-btn-primary" onClick={saveThresholds}>Save thresholds</button>
+        </div>
+      </Section>
+
+      {/* Account */}
+      <Section title="Account">
+        <button className="vio-btn vio-btn-danger" style={{ gap: 8 }} onClick={() => { logout(); navigate('/login') }}>
+          <LogOut size={16} /> Sign out
+        </button>
+      </Section>
+    </AppShell>
   )
 }

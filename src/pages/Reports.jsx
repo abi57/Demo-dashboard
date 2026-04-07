@@ -1,142 +1,126 @@
-import Header from '../components/Header'
-import StatusBadge from '../components/StatusBadge'
-import { useAppData } from '../context/AppDataContext'
+import { Bar, Line } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend } from 'chart.js'
+import { Download } from 'lucide-react'
+import AppShell from '../components/AppShell'
+import KPICard from '../components/KPICard'
+import { useApp } from '../context/AppContext'
+import { ClipboardCheck, Cpu, MapPin, Calendar } from 'lucide-react'
 
-const Panel = ({ title, children }) => (
-  <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-    <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-      <h4 style={{ color: 'var(--text-primary)' }}>{title}</h4>
-    </div>
-    <div className="px-5 py-3">{children}</div>
-  </div>
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend)
 
 export default function Reports() {
-  const { installations } = useAppData()
+  const { installations, devices } = useApp()
 
-  const byCompany = Object.entries(
-    installations.reduce((acc, i) => { acc[i.company] = (acc[i.company] ?? 0) + 1; return acc }, {})
-  ).sort((a, b) => b[1] - a[1])
+  const thisMonth = installations.filter(i => {
+    const d = new Date(i.dateInstalled)
+    const now = new Date()
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
 
-  const bySite = Object.entries(
-    installations.reduce((acc, i) => { acc[i.siteOwner] = (acc[i.siteOwner] ?? 0) + 1; return acc }, {})
-  ).sort((a, b) => b[1] - a[1])
+  const sites = [...new Set(installations.map(i => i.siteOwner))].length
 
-  const byStatus = Object.entries(
-    installations.reduce((acc, i) => { acc[i.status] = (acc[i.status] ?? 0) + 1; return acc }, {})
-  )
+  // By company
+  const byCompany = {}
+  installations.forEach(i => { byCompany[i.company] = (byCompany[i.company] ?? 0) + 1 })
+  const companyLabels = Object.keys(byCompany).sort((a, b) => byCompany[b] - byCompany[a])
 
-  const confirmed = installations.filter(i => i.secureFixing && i.dataFlowConfirmed).length
+  const barData = {
+    labels: companyLabels,
+    datasets: [{ data: companyLabels.map(c => byCompany[c]), backgroundColor: '#0b3d4a', borderRadius: 4 }],
+  }
+  const barOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9ca3af', font: { size: 10 }, stepSize: 1 }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: { color: '#4b5e66', font: { size: 12 } } },
+    },
+  }
 
-  const BarRow = ({ label, count, total, accent }) => (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-      <p className="t-body-sm flex-1 truncate" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-      <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
-        <div className="h-full rounded-full transition-all" style={{ width: `${(count / total) * 100}%`, background: accent }} />
-      </div>
-      <span className="t-body-sm font-semibold w-4 text-right" style={{ color: accent }}>{count}</span>
-    </div>
-  )
+  // Monthly trend (last 6 months)
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(); d.setMonth(d.getMonth() - (5 - i))
+    return { label: d.toLocaleString('default', { month: 'short', year: '2-digit' }), month: d.getMonth(), year: d.getFullYear() }
+  })
+  const monthCounts = months.map(m => installations.filter(i => {
+    const d = new Date(i.dateInstalled)
+    return d.getMonth() === m.month && d.getFullYear() === m.year
+  }).length)
 
-  const kpis = [
-    { label: 'Total Installations', value: installations.length, accent: 'var(--accent)' },
-    { label: 'Fully Confirmed',      value: confirmed,            accent: '#34d399' },
-    { label: 'Companies',            value: byCompany.length,     accent: '#a78bfa' },
-    { label: 'Site Owners',          value: bySite.length,        accent: '#60a5fa' },
-  ]
+  const lineData = {
+    labels: months.map(m => m.label),
+    datasets: [{ data: monthCounts, borderColor: '#1b7a5e', borderWidth: 2, fill: false, pointRadius: 4, pointBackgroundColor: '#1b7a5e', tension: 0.3 }],
+  }
+  const lineOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9ca3af', font: { size: 10 }, stepSize: 1 }, beginAtZero: true },
+    },
+  }
+
+  // Top installers
+  const byInstaller = {}
+  installations.forEach(i => {
+    if (!byInstaller[i.installerName]) byInstaller[i.installerName] = { count: 0, confirmed: 0 }
+    byInstaller[i.installerName].count++
+    if (i.secureFixing && i.dataFlow) byInstaller[i.installerName].confirmed++
+  })
+  const topInstallers = Object.entries(byInstaller).sort((a, b) => b[1].count - a[1].count).slice(0, 8)
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header
-        title="Reports"
-        subtitle="Installation and deployment analytics"
-        action={
-          <button
-            onClick={() => window.print()}
-            className="t-nav flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', background: 'var(--bg-elevated)' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-          >
-            <svg width="13" height="13" viewBox="0 0 15 15" fill="none">
-              <rect x="3" y="1" width="9" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-              <path d="M1 8H14V13H1V8Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-              <path d="M5 11H10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            </svg>
-            Export
-          </button>
-        }
-      />
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
+    <AppShell title="Reports">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 20 }}>
+        <button className="vio-btn vio-btn-secondary vio-btn-sm" style={{ gap: 6 }}><Download size={14} /> Download CSV</button>
+        <button className="vio-btn vio-btn-secondary vio-btn-sm" style={{ gap: 6 }}><Download size={14} /> Download PDF</button>
+      </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {kpis.map(s => (
-            <div key={s.label} className="rounded-xl p-5"
-              style={{ background: 'var(--bg-surface)', border: `1px solid ${s.accent}25` }}>
-              <p className="t-label mb-3" style={{ color: 'var(--text-faint)' }}>{s.label}</p>
-              <p className="t-data-xl" style={{ color: s.accent }}>{s.value}</p>
-            </div>
-          ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} />
+        <KPICard label="Total Devices" value={devices.length} icon={Cpu} />
+        <KPICard label="This Month" value={thisMonth} icon={Calendar} />
+        <KPICard label="Sites Covered" value={sites} icon={MapPin} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div className="vio-card">
+          <p className="vio-label" style={{ marginBottom: 16 }}>Installations by Company</p>
+          <div style={{ height: 220 }}><Bar data={barData} options={barOpts} /></div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <Panel title="By Company">
-            {byCompany.map(([company, count]) => (
-              <BarRow key={company} label={company} count={count} total={installations.length} accent="var(--accent)" />
-            ))}
-          </Panel>
-          <Panel title="By Site Owner">
-            {bySite.map(([site, count]) => (
-              <BarRow key={site} label={site} count={count} total={installations.length} accent="#a78bfa" />
-            ))}
-          </Panel>
-          <Panel title="By Status">
-            {byStatus.map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                <StatusBadge status={status} />
-                <span className="t-body-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{count}</span>
-              </div>
-            ))}
-          </Panel>
-        </div>
-
-        {/* Full table */}
-        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-            <h4 style={{ color: 'var(--text-primary)' }}>All Installations</h4>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-                  {['ID', 'Date', 'Engineer', 'Company', 'Site Owner', 'Tower', 'Height', 'Status'].map(h => (
-                    <th key={h} className="text-left px-5 py-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {installations.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                    <td className="px-5 py-3.5">
-                      <span className="t-micro font-mono font-semibold" style={{ color: 'var(--accent)' }}>{r.id}</span>
-                    </td>
-                    <td className="px-5 py-3.5 t-caption" style={{ color: 'var(--text-faint)' }}>{r.date}</td>
-                    <td className="px-5 py-3.5 t-body-sm font-medium" style={{ color: 'var(--text-primary)' }}>{r.installer}</td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{r.company}</td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{r.siteOwner}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="t-micro font-mono" style={{ color: 'var(--text-muted)' }}>{r.towerId}</span>
-                    </td>
-                    <td className="px-5 py-3.5 t-body-sm" style={{ color: 'var(--text-muted)' }}>{r.installHeight}m</td>
-                    <td className="px-5 py-3.5"><StatusBadge status={r.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="vio-card">
+          <p className="vio-label" style={{ marginBottom: 16 }}>Monthly Trend</p>
+          <div style={{ height: 220 }}><Line data={lineData} options={lineOpts} /></div>
         </div>
       </div>
-    </div>
+
+      <div className="vio-card" style={{ padding: 0 }}>
+        <p className="vio-label" style={{ padding: '16px 20px 12px', borderBottom: '0.5px solid var(--vio-card-border)' }}>Top Installers</p>
+        <table className="vio-table">
+          <thead><tr><th>Installer</th><th>Company</th><th>Installations</th><th>Completion Rate</th></tr></thead>
+          <tbody>
+            {topInstallers.map(([name, stats]) => {
+              const inst = installations.find(i => i.installerName === name)
+              const rate = Math.round((stats.confirmed / stats.count) * 100)
+              return (
+                <tr key={name}>
+                  <td style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)' }}>{name}</td>
+                  <td className="vio-cell">{inst?.company ?? '—'}</td>
+                  <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--vio-primary)' }}>{stats.count}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 60, height: 5, borderRadius: 3, background: 'var(--vio-card-border)', overflow: 'hidden' }}>
+                        <div style={{ width: `${rate}%`, height: '100%', background: rate === 100 ? '#16a34a' : rate >= 80 ? '#f59e0b' : '#dc2626', borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 12, color: 'var(--vio-text-secondary)' }}>{rate}%</span>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </AppShell>
   )
 }

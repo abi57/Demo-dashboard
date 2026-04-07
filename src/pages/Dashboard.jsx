@@ -1,193 +1,150 @@
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
-import SummaryCard from '../components/SummaryCard'
+import { ClipboardCheck, Wifi, AlertCircle, MapPin, ArrowRight } from 'lucide-react'
+import { Bar, Doughnut } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js'
+import AppShell from '../components/AppShell'
+import KPICard from '../components/KPICard'
 import StatusBadge from '../components/StatusBadge'
-import { useAppData } from '../context/AppDataContext'
-import { useAuth } from '../context/AuthContext'
+import SerialBadge from '../components/SerialBadge'
+import { useApp } from '../context/AppContext'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
 export default function Dashboard() {
-  const { installations, devices } = useAppData()
-  const { user } = useAuth()
+  const { installations, devices } = useApp()
   const navigate = useNavigate()
 
-  const confirmed = installations.filter(i => i.status === 'Confirmed').length
-  const pending   = installations.filter(i => i.status === 'Pending').length
-  const online    = devices.filter(d => d.status === 'Online').length
+  const confirmed = installations.filter(i => i.secureFixing && i.dataFlow).length
+  const pending   = installations.filter(i => !i.secureFixing || !i.dataFlow).length
+  const online    = devices.filter(d => d.status === 'online').length
   const sites     = [...new Set(installations.map(i => i.siteOwner))].length
   const recent    = installations.slice(0, 5)
 
-  const systemAlerts = [
-    { id: 1, type: 'warning', msg: 'INS-004: Secure fixing not confirmed', site: 'Kano South Grid' },
-    { id: 2, type: 'info',    msg: 'INS-002: Data flow pending verification', site: 'Accra North Station' },
-    { id: 3, type: 'success', msg: 'INS-003: All systems nominal', site: 'Nairobi Belt Tower' },
-  ]
+  // Bar chart: last 30 days
+  const last30 = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i))
+    return d.toISOString().split('T')[0]
+  })
+  const countByDay = last30.map(day => installations.filter(i => i.dateInstalled === day).length)
 
-  const alertMeta = {
-    warning: { bar: '#fbbf24', text: '#fbbf24', bg: 'rgba(251,191,36,0.06)',  border: 'rgba(251,191,36,0.15)' },
-    info:    { bar: '#60a5fa', text: '#60a5fa', bg: 'rgba(96,165,250,0.06)',  border: 'rgba(96,165,250,0.15)' },
-    success: { bar: '#34d399', text: '#34d399', bg: 'rgba(52,211,153,0.06)',  border: 'rgba(52,211,153,0.15)' },
+  const barData = {
+    labels: last30.map(d => d.slice(5)),
+    datasets: [{ data: countByDay, backgroundColor: '#0b3d4a', borderRadius: 4, borderSkipped: false }],
+  }
+  const barOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => last30[i[0].dataIndex] } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 }, maxTicksLimit: 8 } },
+      y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9ca3af', font: { size: 10 }, stepSize: 1 }, beginAtZero: true },
+    },
   }
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const statusCounts = {
+    online:   devices.filter(d => d.status === 'online').length,
+    degraded: devices.filter(d => d.status === 'degraded').length,
+    alert:    devices.filter(d => d.status === 'alert').length,
+    offline:  devices.filter(d => d.status === 'offline').length,
+  }
+  const donutData = {
+    labels: ['Online', 'Degraded', 'Alert', 'Offline'],
+    datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#16a34a','#f59e0b','#dc2626','#9ca3af'], borderWidth: 0 }],
+  }
+  const donutOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, color: '#4b5e66' } } },
+    cutout: '65%',
+  }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 transition-colors duration-200" style={{ background: 'var(--bg-base)' }}>
-      <Header
-        title="Dashboard"
-        subtitle="System overview and recent activity"
-        action={
-          <button
-            onClick={() => navigate('/installations/new')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all active:scale-[0.97]"
-            style={{ fontSize: 'var(--t-body-sm)', background: 'var(--accent)', color: '#020617', boxShadow: '0 2px 10px var(--accent-glow)' }}
-          >
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1V10M1 5.5H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            New Installation
-          </button>
-        }
-      />
+    <AppShell title="Dashboard">
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} iconColor="#0b3d4a" sub={`${confirmed} confirmed`} />
+        <KPICard label="Online Devices" value={online} icon={Wifi} iconColor="#16a34a" dot dotColor="#16a34a" sub={`of ${devices.length} total`} />
+        <KPICard label="Pending Confirmations" value={pending} icon={AlertCircle} iconColor={pending > 0 ? '#f59e0b' : '#16a34a'} dot dotColor={pending > 0 ? '#f59e0b' : '#16a34a'} sub="secure fixing or data flow" />
+        <KPICard label="Total Sites" value={sites} icon={MapPin} iconColor="#1b7a5e" sub="unique site owners" />
+      </div>
 
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
-
-        {/* Welcome */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 style={{ fontSize: 'var(--t-h2)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--ls-tight)', color: 'var(--text-primary)', marginBottom: 6 }}>
-              {greeting}, {user?.name?.split(' ')[0]}
-            </h2>
-            <p style={{ fontSize: 'var(--t-body)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Here's what's happening across your network today.
-            </p>
-          </div>
-          <div
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-          >
-            <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: 'var(--success)' }} />
-            <span style={{ fontSize: 'var(--t-caption)', color: 'var(--text-muted)' }}>
-              Live · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
-          </div>
+      {/* Charts row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div className="vio-card">
+          <p className="vio-label" style={{ marginBottom: 16 }}>Installations — last 30 days</p>
+          <div style={{ height: 200 }}><Bar data={barData} options={barOpts} /></div>
         </div>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <SummaryCard label="Total Installations" value={installations.length} icon="📋" color="cyan"    trend={`${confirmed} confirmed`} />
-          <SummaryCard label="Online Devices"       value={online}              icon="◉"  color="emerald" trend="Live monitoring" />
-          <SummaryCard label="Pending Review"       value={pending}             icon="⏳" color="amber"   trend="Awaiting confirmation" />
-          <SummaryCard label="Active Sites"         value={sites}               icon="⬡"  color="blue"    trend="Across all regions" />
+        <div className="vio-card">
+          <p className="vio-label" style={{ marginBottom: 16 }}>Device status breakdown</p>
+          <div style={{ height: 200 }}><Doughnut data={donutData} options={donutOpts} /></div>
         </div>
+      </div>
 
-        {/* Main grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
-
-          {/* Recent installs table */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div>
-                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Recent Installations</h3>
-                <p style={{ fontSize: 'var(--t-caption)', marginTop: 3, color: 'var(--text-faint)' }}>Latest field deployment records</p>
-              </div>
-              <button onClick={() => navigate('/install-records')}
-                style={{ fontSize: 'var(--t-caption)', fontWeight: 'var(--fw-medium)', color: 'var(--accent)' }}>
-                View all →
-              </button>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                  {['Record ID', 'Date', 'Engineer', 'Tower', 'Status'].map(h => (
-                    <th key={h} className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                      style={{ color: 'var(--text-faint)' }}>{h}</th>
-                  ))}
+      {/* Recent installs + alerts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+        <div className="vio-card" style={{ padding: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '0.5px solid var(--vio-card-border)' }}>
+            <p className="vio-label">Recent Installations</p>
+            <button onClick={() => navigate('/install-records')} className="vio-btn vio-btn-ghost vio-btn-sm" style={{ gap: 4 }}>
+              View all <ArrowRight size={12} />
+            </button>
+          </div>
+          <table className="vio-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                {['Date', 'Installer', 'Tower ID', 'Sensor', 'Site Owner', 'Status'].map(h => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recent.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--vio-text-muted)' }}>No installations yet</td></tr>
+              ) : recent.map(r => (
+                <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/install-records/${r.id}`)}>
+                  <td className="vio-cell">{r.dateInstalled}</td>
+                  <td className="vio-cell">{r.installerName}</td>
+                  <td className="vio-cell vio-mono" style={{ fontSize: 12 }}>{r.towerId}</td>
+                  <td><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{r.sensorSerials.map(s => <SerialBadge key={s} serial={s} />)}</div></td>
+                  <td className="vio-cell">{r.siteOwner}</td>
+                  <td><StatusBadge status={r.status} /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {recent.map(r => (
-                  <tr key={r.id}
-                    onClick={() => navigate(`/install-records/${r.id}`)}
-                    className="cursor-pointer transition-colors"
-                    style={{ borderBottom: '1px solid var(--border-soft)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td className="px-6 py-3.5">
-                      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-caption)', fontWeight: 'var(--fw-semibold)', color: 'var(--accent)' }}>{r.id}</span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span style={{ fontSize: 'var(--t-body-sm)', color: 'var(--text-faint)' }}>{r.date}</span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span style={{ fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-secondary)' }}>{r.installer}</span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-caption)', color: 'var(--text-faint)' }}>{r.towerId}</span>
-                    </td>
-                    <td className="px-6 py-3.5"><StatusBadge status={r.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Alerts panel */}
+          <div className="vio-card" style={{ padding: 0 }}>
+            <p className="vio-label" style={{ padding: '16px 20px 12px', borderBottom: '0.5px solid var(--vio-card-border)' }}>Active Alerts</p>
+            <div style={{ padding: '12px 16px' }}>
+              {devices.filter(d => d.status === 'alert').length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--vio-status-green)', fontSize: 13 }}>
+                  ✓ No active alerts
+                </div>
+              ) : devices.filter(d => d.status === 'alert').slice(0, 3).map(d => (
+                <div key={d.serial} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid var(--vio-card-border)', borderLeft: '3px solid var(--vio-status-red)', paddingLeft: 10, marginLeft: -10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{d.serial}</div>
+                    <div style={{ fontSize: 11, color: 'var(--vio-text-muted)' }}>{d.siteOwner} · {d.towerId}</div>
+                  </div>
+                  <StatusBadge status="alert" />
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-4">
-            {/* Alerts */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-              <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>System Alerts</h3>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
-                  style={{ background: 'var(--bg-elevated)', color: 'var(--text-faint)', border: '1px solid var(--border)' }}>
-                  {systemAlerts.length} active
-                </span>
-              </div>
-              <div className="p-4 flex flex-col gap-2">
-                {systemAlerts.map(a => {
-                  const m = alertMeta[a.type]
-                  return (
-                    <div key={a.id} className="relative rounded-xl overflow-hidden p-3.5"
-                      style={{ background: m.bg, border: `1px solid ${m.border}` }}>
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.bar }} />
-                      <div className="pl-2">
-                        <p style={{ fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: m.text }}>{a.msg}</p>
-                        <p style={{ fontSize: 'var(--t-caption)', marginTop: 3, color: 'var(--text-faint)' }}>{a.site}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Quick devices */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-              <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: 'var(--t-h4)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Quick Device Access</h3>
-              </div>
-              <div className="p-3 flex flex-col gap-1.5">
-                {devices.slice(0, 4).map(d => (
-                  <button key={d.id} onClick={() => navigate(`/devices/${d.id}`)}
-                    className="flex items-center justify-between px-3.5 py-3 rounded-xl text-left transition-all"
-                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent-border)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]"
-                        style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>◉</div>
-                      <div>
-                        <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--t-body-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-secondary)' }}>{d.serial}</p>
-                        <p style={{ fontSize: 'var(--t-caption)', color: 'var(--text-faint)' }}>{d.tower}</p>
-                      </div>
-                    </div>
-                    <StatusBadge status={d.status} pulse={d.status === 'Online'} />
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Quick device selector */}
+          <div className="vio-card">
+            <p className="vio-label" style={{ marginBottom: 12 }}>Quick Device Access</p>
+            <select className="vio-input" onChange={e => { if (e.target.value) navigate(`/devices/${e.target.value}`) }} defaultValue="">
+              <option value="" disabled>Select a device…</option>
+              {devices.map(d => (
+                <option key={d.serial} value={d.serial}>{d.serial} — {d.towerId}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }

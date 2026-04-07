@@ -1,103 +1,106 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
+import { Search } from 'lucide-react'
+import AppShell from '../components/AppShell'
 import StatusBadge from '../components/StatusBadge'
-import { useAppData } from '../context/AppDataContext'
+import { useApp } from '../context/AppContext'
+import { SENSOR_TYPES } from '../data/seed'
 
-const TYPE_META = {
-  environmental: { icon: '🌡️', label: 'Environmental', accent: '#fbbf24' },
-  asset:         { icon: '📡', label: 'Asset',          accent: '#60a5fa' },
-  safety:        { icon: '🛡️', label: 'Safety',         accent: '#a78bfa' },
+function BatteryBar({ pct }) {
+  const color = pct < 20 ? '#dc2626' : pct < 40 ? '#f59e0b' : '#16a34a'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ width: 48, height: 5, borderRadius: 3, background: 'var(--vio-card-border)', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3 }} />
+      </div>
+      <span style={{ fontSize: 11, color: pct < 20 ? '#dc2626' : 'var(--vio-text-muted)' }}>{pct}%</span>
+    </div>
+  )
 }
 
 export default function Devices() {
-  const { devices } = useAppData()
+  const { devices } = useApp()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
 
   const filtered = devices.filter(d => {
     const q = search.toLowerCase()
-    return !q || [d.serial, d.site, d.tower, d.installer].some(v => v?.toLowerCase().includes(q))
+    const matchSearch = !q || d.serial.toLowerCase().includes(q) || d.siteOwner.toLowerCase().includes(q) || d.towerId.toLowerCase().includes(q)
+    const matchStatus = statusFilter === 'all' || d.status === statusFilter
+    const matchType   = typeFilter === 'all' || d.sensorType === typeFilter
+    return matchSearch && matchStatus && matchType
   })
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header title="Devices & Sensors" subtitle={`${devices.length} registered devices across all sites`} />
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
-
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 15 15" fill="none" style={{ color: 'var(--text-faint)' }}>
-              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.3"/>
-              <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            </svg>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search devices…"
-              className="t-nav rounded-lg pl-9 pr-4 py-2 outline-none transition-all w-56"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-              onFocus={e => e.target.style.borderColor = 'var(--accent-border)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
-            />
-          </div>
-          <span className="t-caption" style={{ color: 'var(--text-faint)' }}>{filtered.length} results</span>
+    <AppShell title="Devices">
+      {/* Filter bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 300 }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--vio-text-muted)', pointerEvents: 'none' }} />
+          <input className="vio-input" style={{ paddingLeft: 36 }} placeholder="Search serial, site, tower…"
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['all','online','degraded','alert','offline'].map(s => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`vio-btn vio-btn-sm ${statusFilter === s ? 'vio-btn-primary' : 'vio-btn-ghost'}`}
+              style={{ textTransform: 'capitalize' }}>
+              {s === 'all' ? 'All Status' : s}
+            </button>
+          ))}
+        </div>
+        <select className="vio-input" style={{ width: 160, height: 34, fontSize: 13 }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+          <option value="all">All Types</option>
+          {Object.entries(SENSOR_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 64 }}>
+          <p style={{ fontSize: 18, color: 'var(--vio-text-muted)' }}>No devices match your filters.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {filtered.map(d => {
-            const meta = TYPE_META[d.deviceType] ?? TYPE_META.environmental
+            const st = SENSOR_TYPES[d.sensorType] ?? SENSOR_TYPES.smart
             return (
-              <div
-                key={d.id}
-                onClick={() => navigate(`/devices/${d.id}`)}
-                className="rounded-xl p-5 cursor-pointer transition-all group"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-surface)' }}
-              >
-                <div className="flex items-start justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                      style={{ background: `${meta.accent}12`, border: `1px solid ${meta.accent}25` }}>
-                      {meta.icon}
-                    </div>
-                    <div>
-                      <p className="t-body-sm font-semibold font-mono" style={{ color: 'var(--text-primary)' }}>{d.serial}</p>
-                      <p className="t-caption mt-0.5" style={{ color: 'var(--text-muted)' }}>{d.site}</p>
-                    </div>
+              <div key={d.serial} className="vio-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: st.color, flexShrink: 0 }} title={st.label} />
+                    <span className="vio-mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--vio-primary)' }}>{d.serial}</span>
                   </div>
-                  <StatusBadge status={d.status} pulse={d.status === 'Online'} />
+                  <StatusBadge status={d.status} />
                 </div>
-
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
-                  {[
-                    { label: 'Tower',     value: d.tower },
-                    { label: 'Installed', value: d.installDate },
-                    { label: 'Engineer',  value: d.installer },
-                    { label: 'Health',    value: d.health },
-                  ].map(f => (
-                    <div key={f.label}>
-                      <p className="t-label mb-1" style={{ color: 'var(--text-xfaint)' }}>{f.label}</p>
-                      <p className="t-caption" style={{ color: 'var(--text-muted)' }}>{f.value}</p>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="vio-label">Site Owner</span>
+                    <span style={{ fontSize: 13, color: 'var(--vio-text-secondary)' }}>{d.siteOwner}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="vio-label">Tower ID</span>
+                    <span className="vio-mono" style={{ fontSize: 12, color: 'var(--vio-text-secondary)' }}>{d.towerId}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="vio-label">Height</span>
+                    <span style={{ fontSize: 13, color: 'var(--vio-text-secondary)' }}>{d.heightAGL} m</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="vio-label">Installed</span>
+                    <span style={{ fontSize: 13, color: 'var(--vio-text-secondary)' }}>{d.dateInstalled}</span>
+                  </div>
                 </div>
-
-                <div className="flex items-center justify-between pt-3.5" style={{ borderTop: '1px solid var(--border-soft)' }}>
-                  <span className="t-micro px-2 py-0.5 rounded-md font-medium"
-                    style={{ color: meta.accent, background: `${meta.accent}12`, border: `1px solid ${meta.accent}25` }}>
-                    {meta.label}
-                  </span>
-                  <span className="t-caption opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--accent)' }}>
-                    View dashboard →
-                  </span>
-                </div>
+                <BatteryBar pct={d.battery} />
+                <button className="vio-btn vio-btn-primary" style={{ width: '100%' }} onClick={() => navigate(`/devices/${d.serial}`)}>
+                  View Dashboard →
+                </button>
               </div>
             )
           })}
         </div>
-      </div>
-    </div>
+      )}
+    </AppShell>
   )
 }

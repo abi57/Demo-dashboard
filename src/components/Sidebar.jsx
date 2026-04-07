@@ -1,227 +1,125 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard, ClipboardPlus, FileText, Cpu,
+  MapPin, Image, BarChart2, Settings, LogOut,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useAlert } from '../context/AlertContext'
-import { useTheme } from '../context/ThemeContext'
-import { SidebarBrand } from './Brand'
 
-/* ── Nav definition ──────────────────────────────────────────────────────────── */
 const NAV = [
-  {
-    label: 'Overview',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" strokeWidth="1.2"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" strokeWidth="1.2"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" strokeWidth="1.2"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" strokeWidth="1.2"/></svg>
-      },
-    ],
-  },
-  {
-    label: 'Field Operations',
-    items: [
-      { to: '/installations/new', label: 'New Installation', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.2"/><path d="M7.5 4.5V10.5M4.5 7.5H10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-      },
-      { to: '/install-records', label: 'Install Records', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><rect x="2" y="1" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2"/><path d="M5 5H10M5 7.5H10M5 10H8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-      },
-      { to: '/devices', label: 'Devices & Sensors', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M7.5 1.5V3M7.5 12V13.5M1.5 7.5H3M12 7.5H13.5M3.4 3.4L4.5 4.5M10.5 10.5L11.6 11.6M3.4 11.6L4.5 10.5M10.5 4.5L11.6 3.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-      },
-      { to: '/sites', label: 'Sites & Towers', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L13 4.5V10.5L7.5 14L2 10.5V4.5L7.5 1Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/><circle cx="7.5" cy="7.5" r="2" stroke="currentColor" strokeWidth="1.2"/></svg>
-      },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    items: [
-      { to: '/photos', label: 'Photo Library', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><rect x="1" y="3" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/><circle cx="7.5" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.2"/><path d="M5 3L6 1H9L10 3" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>
-      },
-      { to: '/reports', label: 'Reports', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M2 12L5 8L7.5 10L10 6L13 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><rect x="1" y="1" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2"/></svg>
-      },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { to: '/settings', label: 'Settings', icon:
-        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2" stroke="currentColor" strokeWidth="1.2"/><path d="M7.5 1.5V3M7.5 12V13.5M1.5 7.5H3M12 7.5H13.5M3.4 3.4L4.5 4.5M10.5 10.5L11.6 11.6M3.4 11.6L4.5 10.5M10.5 4.5L11.6 3.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-      },
-    ],
-  },
+  { to: '/dashboard',        label: 'Dashboard',          Icon: LayoutDashboard },
+  { to: '/installations/new',label: 'New Installation',   Icon: ClipboardPlus   },
+  { to: '/install-records',  label: 'Install Records',    Icon: FileText        },
+  { to: '/devices',          label: 'Devices',            Icon: Cpu             },
+  { to: '/sites',            label: 'Sites',              Icon: MapPin          },
+  { to: '/photos',           label: 'Photos',             Icon: Image           },
+  { to: '/reports',          label: 'Reports',            Icon: BarChart2       },
+  { to: '/settings',         label: 'Settings',           Icon: Settings        },
 ]
 
 export default function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuth()
-  const { push } = useAlert()
-  const { isDark, toggle } = useTheme()
   const navigate = useNavigate()
-
-  function handleLogout() {
-    logout()
-    push('Signed out successfully', 'info')
-    navigate('/login')
-  }
+  const W = collapsed ? 64 : 240
 
   return (
-    <aside
-      className="fixed left-0 top-0 h-screen w-[232px] flex flex-col z-40"
-      style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
-    >
-      {/* ── Brand ── */}
-      <div
-        className="flex items-center px-5 flex-shrink-0"
-        style={{ height: 64, borderBottom: '1px solid var(--sidebar-border)' }}
-      >
-        <SidebarBrand isDark={isDark} />
+    <aside style={{
+      position: 'fixed', top: 0, left: 0, bottom: 0, width: W,
+      background: 'var(--vio-sidebar-bg)',
+      borderRight: '0.5px solid var(--vio-sidebar-border)',
+      display: 'flex', flexDirection: 'column', zIndex: 40,
+      transition: 'width 0.2s ease', overflow: 'hidden',
+    }}>
+      {/* Brand */}
+      <div style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '0.5px solid var(--vio-sidebar-border)', flexShrink: 0, gap: 10 }}>
+        {/* Logo mark */}
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
+          <rect width="28" height="28" rx="7" fill="#0b3d4a"/>
+          <circle cx="14" cy="14" r="4" stroke="white" strokeWidth="1.5" fill="none"/>
+          <path d="M14 5v3M14 20v3M5 14h3M20 14h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M7.5 7.5l2 2M18.5 18.5l2 2M7.5 20.5l2-2M18.5 9.5l2-2" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeLinecap="round"/>
+        </svg>
+        {!collapsed && (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--vio-primary)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Viotel</div>
+            <div style={{ fontSize: 11, color: 'var(--vio-text-muted)', fontWeight: 500 }}>myViotel</div>
+          </div>
+        )}
       </div>
 
-      {/* ── Nav ── */}
-      <nav className="flex-1 overflow-y-auto py-5 px-3 flex flex-col gap-5">
-        {NAV.map(group => (
-          <div key={group.label}>
-            <p
-              className="font-semibold uppercase px-3 mb-1.5"
-              style={{ fontSize: 9.5, letterSpacing: '0.12em', color: 'var(--text-xfaint)' }}
-            >
-              {group.label}
-            </p>
-            <div className="flex flex-col gap-[1px]">
-              {group.items.map(({ to, label, icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-2.5 px-3 rounded-[8px] font-medium"
-                  style={({ isActive }) => ({
-                    height: 34,
-                    fontSize: 'var(--t-nav)',
-                    color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                    background: isActive ? 'var(--accent-bg)' : 'transparent',
-                    border: isActive ? '1px solid var(--accent-border)' : '1px solid transparent',
-                  })}
-                  onMouseEnter={e => {
-                    const active = e.currentTarget.style.background !== 'transparent'
-                    if (!active) {
-                      e.currentTarget.style.background = 'var(--bg-hover)'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    const active = e.currentTarget.style.borderColor === 'var(--accent-border)'
-                    if (!active) {
-                      e.currentTarget.style.background = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-muted)'
-                    }
-                  }}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span style={{ color: isActive ? 'var(--accent)' : 'var(--text-faint)', flexShrink: 0 }}>
-                        {icon}
-                      </span>
-                      <span className="truncate flex-1">{label}</span>
-                      {isActive && (
-                        <span
-                          className="flex-shrink-0 rounded-full"
-                          style={{ width: 4, height: 4, background: 'var(--accent)', opacity: 0.8 }}
-                        />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-          </div>
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: '8px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
+        {NAV.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/dashboard'}
+            title={collapsed ? label : undefined}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: collapsed ? '10px 18px' : '9px 12px',
+              borderRadius: 8, marginBottom: 2,
+              textDecoration: 'none', fontSize: 14, fontWeight: 400,
+              color: isActive ? 'var(--vio-primary)' : 'var(--vio-text-secondary)',
+              background: isActive ? 'rgba(11,61,74,0.08)' : 'transparent',
+              borderLeft: isActive ? '3px solid var(--vio-primary)' : '3px solid transparent',
+              whiteSpace: 'nowrap', overflow: 'hidden',
+            })}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={16} style={{ flexShrink: 0, color: isActive ? 'var(--vio-primary)' : 'var(--vio-text-muted)' }} />
+                {!collapsed && <span>{label}</span>}
+              </>
+            )}
+          </NavLink>
         ))}
       </nav>
 
-      {/* ── Theme toggle ── */}
-      <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-        <button
-          onClick={toggle}
-          className="w-full flex items-center justify-between px-3 rounded-[8px] transition-all"
-          style={{
-            height: 36,
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)',
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-        >
-          <div className="flex items-center gap-2">
-            {isDark ? (
-              <svg width="12" height="12" viewBox="0 0 15 15" fill="none" style={{ color: 'var(--text-muted)' }}>
-                <circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
-                <path d="M7.5 1V2.5M7.5 12.5V14M1 7.5H2.5M12.5 7.5H14M3 3L4 4M11 11L12 12M3 12L4 11M11 4L12 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 15 15" fill="none" style={{ color: 'var(--text-muted)' }}>
-                <path d="M13 9.5A6 6 0 015.5 2a6 6 0 100 11 6 6 0 007.5-3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
-              </svg>
-            )}
-            <span style={{ fontSize: 'var(--t-nav)', color: 'var(--text-muted)' }}>
-              {isDark ? 'Light mode' : 'Dark mode'}
-            </span>
-          </div>
-          {/* Toggle pill */}
-          <div
-            className="rounded-full relative flex-shrink-0"
-            style={{
-              width: 28, height: 16,
-              background: isDark ? 'var(--accent-bg)' : 'var(--bg-active)',
-              border: '1px solid var(--border-strong)',
-            }}
-          >
-            <div
-              className="absolute top-[2px] rounded-full"
-              style={{
-                width: 10, height: 10,
-                background: isDark ? 'var(--accent)' : 'var(--text-muted)',
-                left: isDark ? 2 : 14,
-              }}
-            />
-          </div>
-        </button>
-      </div>
+      {/* Collapse toggle */}
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: 36, margin: '0 8px 4px',
+          background: 'transparent', border: '0.5px solid var(--vio-card-border)',
+          borderRadius: 8, cursor: 'pointer', color: 'var(--vio-text-muted)',
+          flexShrink: 0,
+        }}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
 
-      {/* ── User ── */}
+      {/* User footer */}
       {user && (
-        <div className="p-3 flex-shrink-0" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-          <div
-            className="flex items-center gap-2.5 px-2.5 rounded-[8px] cursor-default group"
-            style={{ height: 44 }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0"
-              style={{ fontSize: 11, background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)' }}
-            >
-              {user.name[0].toUpperCase()}
+        <div style={{ padding: '12px 8px', borderTop: '0.5px solid var(--vio-sidebar-border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderRadius: 8, marginBottom: 4 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', background: 'var(--vio-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+            }}>
+              {user.name?.[0]?.toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate leading-none" style={{ fontSize: 'var(--t-nav)', color: 'var(--text-primary)' }}>
-                {user.name}
-              </p>
-              <p className="capitalize mt-[3px]" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
-                {user.role}
-              </p>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
-              style={{ color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
-            >
-              <svg width="13" height="13" viewBox="0 0 15 15" fill="none">
-                <path d="M6 2H3C2.4 2 2 2.4 2 3V12C2 12.6 2.4 13 3 13H6M10 10.5L13 7.5L10 4.5M5 7.5H13"
-                  stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            {!collapsed && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--vio-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.company}</div>
+              </div>
+            )}
           </div>
+          <button
+            onClick={() => { logout(); navigate('/login') }}
+            className="vio-btn vio-btn-ghost vio-btn-sm"
+            style={{ width: '100%', justifyContent: collapsed ? 'center' : 'flex-start', gap: 6 }}
+            title="Sign out"
+          >
+            <LogOut size={14} />
+            {!collapsed && 'Sign out'}
+          </button>
         </div>
       )}
     </aside>

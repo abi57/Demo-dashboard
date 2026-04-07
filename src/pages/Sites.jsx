@@ -1,89 +1,78 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
-import { useAppData } from '../context/AppDataContext'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import AppShell from '../components/AppShell'
+import SerialBadge from '../components/SerialBadge'
+import StatusBadge from '../components/StatusBadge'
+import { useApp } from '../context/AppContext'
 
 export default function Sites() {
-  const { sites, devices, installations } = useAppData()
+  const { sites, devices } = useApp()
   const navigate = useNavigate()
+  const [expanded, setExpanded] = useState({})
+
+  if (sites.length === 0) return (
+    <AppShell title="Sites">
+      <div style={{ textAlign: 'center', padding: 64 }}>
+        <MapPin size={40} style={{ color: 'var(--vio-text-muted)', margin: '0 auto 16px', display: 'block' }} />
+        <p style={{ fontSize: 18, color: 'var(--vio-text-muted)' }}>No sites yet.</p>
+        <button className="vio-btn vio-btn-primary" style={{ marginTop: 16 }} onClick={() => navigate('/installations/new')}>Add first installation</button>
+      </div>
+    </AppShell>
+  )
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header title="Sites & Towers" subtitle={`${sites.length} registered sites`} />
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-5">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {sites.map(site => {
-            const siteDevices  = devices.filter(d => d.site === site.owner)
-            const siteInstalls = installations.filter(i => i.siteOwner === site.owner)
-
-            return (
-              <div key={site.id} className="rounded-xl overflow-hidden transition-all"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent-border)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+    <AppShell title="Sites">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {sites.map(site => {
+          const isOpen = expanded[site.siteOwner]
+          const siteDevices = devices.filter(d => d.siteOwner === site.siteOwner)
+          return (
+            <div key={site.siteOwner} className="vio-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <button
+                onClick={() => setExpanded(e => ({ ...e, [site.siteOwner]: !e[site.siteOwner] }))}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
               >
-                <div className="px-6 py-5 flex items-start justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-                  <div>
-                    <h4 style={{ color: 'var(--text-primary)' }}>{site.name}</h4>
-                    <p className="t-caption mt-1" style={{ color: 'var(--text-muted)' }}>{site.owner} · {site.region}</p>
-                  </div>
-                  <span className="t-micro font-mono px-2 py-1 rounded-md"
-                    style={{ color: 'var(--text-faint)', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-                    {site.id}
+                {isOpen ? <ChevronDown size={16} color="var(--vio-text-muted)" /> : <ChevronRight size={16} color="var(--vio-text-muted)" />}
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{site.siteOwner}</span>
+                  <span style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginLeft: 12 }}>
+                    {site.towers.length} tower{site.towers.length !== 1 ? 's' : ''} · {siteDevices.length} device{siteDevices.length !== 1 ? 's' : ''}
                   </span>
                 </div>
-
-                <div className="p-5">
-                  <div className="grid grid-cols-3 gap-3 mb-5">
-                    {[
-                      { label: 'Towers',        value: site.towers.length, accent: 'var(--accent)' },
-                      { label: 'Devices',       value: siteDevices.length, accent: 'var(--text-primary)' },
-                      { label: 'Installations', value: siteInstalls.length, accent: '#34d399' },
-                    ].map(s => (
-                      <div key={s.label} className="rounded-xl px-3 py-3 text-center"
-                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-                        <p className="t-data-sm" style={{ color: s.accent }}>{s.value}</p>
-                        <p className="t-label mt-1" style={{ color: 'var(--text-faint)' }}>{s.label}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    {site.towers.map(t => {
-                      const towerDevices = devices.filter(d => d.tower === t)
-                      return (
-                        <div key={t} className="flex items-center justify-between px-4 py-3 rounded-xl"
-                          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-soft)' }}>
-                          <div className="flex items-center gap-2.5">
-                            <svg width="13" height="13" viewBox="0 0 15 15" fill="none" style={{ color: 'var(--text-muted)' }}>
-                              <path d="M7.5 1L13 4.5V10.5L7.5 14L2 10.5V4.5L7.5 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                            </svg>
-                            <span className="t-body-sm font-mono" style={{ color: 'var(--text-muted)' }}>{t}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="t-caption" style={{ color: 'var(--text-faint)' }}>
-                              {towerDevices.length} device{towerDevices.length !== 1 ? 's' : ''}
-                            </span>
-                            {towerDevices.map(d => (
-                              <button key={d.id} onClick={() => navigate(`/devices/${d.id}`)}
-                                className="t-micro font-mono px-2 py-0.5 rounded-md transition-all"
-                                style={{ color: 'var(--accent)', border: '1px solid var(--accent-border)', background: 'var(--accent-bg)' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-border)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-bg)'}
-                              >
-                                {d.serial}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['online','degraded','alert'].map(s => {
+                    const count = siteDevices.filter(d => d.status === s).length
+                    return count > 0 ? <StatusBadge key={s} status={s} /> : null
+                  })}
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              </button>
+
+              {isOpen && (
+                <div style={{ borderTop: '0.5px solid var(--vio-card-border)' }}>
+                  {site.towers.map(tower => {
+                    const towerDevices = devices.filter(d => d.towerId === tower.towerId)
+                    return (
+                      <div key={tower.towerId} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px 12px 48px', borderBottom: '0.5px solid var(--vio-card-border)' }}>
+                        <span className="vio-mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--vio-primary)', minWidth: 100 }}>{tower.towerId}</span>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                          {tower.serials.map(s => <SerialBadge key={s} serial={s} />)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {towerDevices.map(d => <StatusBadge key={d.serial} status={d.status} />)}
+                        </div>
+                        <button className="vio-btn vio-btn-ghost vio-btn-sm" onClick={() => navigate(`/install-records/${tower.installationId}`)}>
+                          View records
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-    </div>
+    </AppShell>
   )
 }

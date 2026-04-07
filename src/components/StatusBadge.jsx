@@ -1,34 +1,25 @@
-const MAP = {
-  Confirmed:        { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
-  Online:           { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
-  Pending:          { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
-  Warning:          { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
-  Offline:          { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)'   },
-  Good:             { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'   },
-  'Check Required': { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)'  },
-}
-const DEFAULT = { color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' }
+import { CheckCircle, XCircle, AlertCircle, WifiOff } from 'lucide-react'
 
-export default function StatusBadge({ status, pulse = false }) {
-  const s = MAP[status] ?? DEFAULT
+const MAP = {
+  confirmed: { cls: 'vio-badge-green',  label: 'Confirmed', Icon: CheckCircle },
+  online:    { cls: 'vio-badge-green',  label: 'Online',    Icon: CheckCircle },
+  pending:   { cls: 'vio-badge-amber',  label: 'Pending',   Icon: AlertCircle },
+  degraded:  { cls: 'vio-badge-amber',  label: 'Degraded',  Icon: AlertCircle },
+  warning:   { cls: 'vio-badge-amber',  label: 'Warning',   Icon: AlertCircle },
+  alert:     { cls: 'vio-badge-red',    label: 'Alert',     Icon: XCircle     },
+  failed:    { cls: 'vio-badge-red',    label: 'Failed',    Icon: XCircle     },
+  offline:   { cls: 'vio-badge-grey',   label: 'Offline',   Icon: WifiOff     },
+  yes:       { cls: 'vio-badge-green',  label: 'Yes',       Icon: CheckCircle },
+  no:        { cls: 'vio-badge-red',    label: 'No',        Icon: XCircle     },
+}
+
+export default function StatusBadge({ status, showIcon = true }) {
+  const s = MAP[status?.toLowerCase()] ?? { cls: 'vio-badge-grey', label: status ?? '—', Icon: AlertCircle }
+  const { cls, label, Icon } = s
   return (
-    <span
-      className="inline-flex items-center gap-[5px] rounded-md"
-      style={{
-        fontSize: 'var(--t-micro)',
-        fontWeight: 'var(--fw-semibold)',
-        letterSpacing: '0.04em',
-        padding: '3px 8px',
-        color: s.color,
-        background: s.bg,
-        border: `1px solid ${s.border}`,
-      }}
-    >
-      <span
-        className={`rounded-full flex-shrink-0 ${pulse ? 'animate-pulse' : ''}`}
-        style={{ width: 5, height: 5, background: s.color }}
-      />
-      {status}
+    <span className={`vio-badge ${cls}`}>
+      {showIcon && <Icon size={10} />}
+      {label}
     </span>
   )
 }

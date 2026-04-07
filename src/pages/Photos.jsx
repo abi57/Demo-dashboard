@@ -1,55 +1,47 @@
 import { useState } from 'react'
-import Header from '../components/Header'
-import { useAppData } from '../context/AppDataContext'
+import { Image } from 'lucide-react'
+import AppShell from '../components/AppShell'
+import { useApp } from '../context/AppContext'
 
 export default function Photos() {
-  const { installations } = useAppData()
-  const [selected, setSelected] = useState(null)
+  const { installations } = useApp()
+  const [lightbox, setLightbox] = useState(null)
   const withPhotos = installations.filter(i => i.photos?.length > 0)
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--bg-base)' }}>
-      <Header title="Photo Library" subtitle="Installation site photos grouped by record" />
-      <div className="flex-1 overflow-y-auto p-8">
-        {withPhotos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <p className="text-5xl mb-4 opacity-20">📷</p>
-            <p className="t-body" style={{ color: 'var(--text-muted)' }}>No photos uploaded yet</p>
-            <p className="t-caption mt-1" style={{ color: 'var(--text-faint)' }}>Photos are added during installation</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-8">
-            {withPhotos.map(inst => (
-              <div key={inst.id}>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="t-micro font-semibold font-mono" style={{ color: 'var(--accent)' }}>{inst.id}</span>
-                  <span style={{ color: 'var(--text-faint)' }}>·</span>
-                  <span className="t-body-sm" style={{ color: 'var(--text-muted)' }}>{inst.installer}</span>
-                  <span style={{ color: 'var(--text-faint)' }}>·</span>
-                  <span className="t-body-sm" style={{ color: 'var(--text-muted)' }}>{inst.towerId}</span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {inst.photos.map((p, i) => (
-                    <div key={i} onClick={() => setSelected(p)}
-                      className="aspect-square rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-105"
-                      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-                      <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+    <AppShell title="Photos">
+      {withPhotos.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 64 }}>
+          <Image size={40} style={{ color: 'var(--vio-text-muted)', margin: '0 auto 16px', display: 'block' }} />
+          <p style={{ fontSize: 18, fontWeight: 600, color: 'var(--vio-text-primary)', marginBottom: 8 }}>No photos yet</p>
+          <p style={{ fontSize: 14, color: 'var(--vio-text-muted)' }}>Photos uploaded during installations will appear here.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          {withPhotos.map(inst => (
+            <div key={inst.id}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{inst.installerName}</span>
+                <span style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginLeft: 8 }}>· {inst.towerId} · {inst.dateInstalled}</span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selected && (
-        <div className="fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-8"
-          onClick={() => setSelected(null)}>
-          <img src={selected.url} alt={selected.name} className="max-w-full max-h-full rounded-2xl shadow-2xl" />
-          <button className="absolute top-6 right-6 text-white text-3xl hover:opacity-70 transition-opacity">×</button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+                {inst.photos.map((p, i) => (
+                  <div key={i} onClick={() => setLightbox(p.url ?? p)}
+                    style={{ aspectRatio: '1', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: 'var(--vio-page-bg)', border: '0.5px solid var(--vio-card-border)' }}>
+                    <img src={p.url ?? p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
-    </div>
+
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <img src={lightbox} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} />
+        </div>
+      )}
+    </AppShell>
   )
 }

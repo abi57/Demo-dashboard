@@ -1,31 +1,37 @@
 import { useAlert } from '../context/AlertContext'
 
 const META = {
-  info:    { bar: '#60a5fa', icon: 'ℹ', text: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.2)'  },
-  success: { bar: '#34d399', icon: '✓', text: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.2)'  },
-  warning: { bar: '#fbbf24', icon: '▲', text: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.2)'  },
-  error:   { bar: '#f87171', icon: '✕', text: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
+  success: { bg: '#f0fdf4', border: '#bbf7d0', color: '#15803d', icon: '✓' },
+  info:    { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', icon: 'ℹ' },
+  warning: { bg: '#fffbeb', border: '#fde68a', color: '#d97706', icon: '▲' },
+  error:   { bg: '#fef2f2', border: '#fecaca', color: '#dc2626', icon: '✕' },
 }
 
 export default function AlertToast() {
   const { alerts, dismiss } = useAlert()
   return (
-    <div className="fixed top-4 right-4 z-[200] flex flex-col gap-2 w-80 pointer-events-none">
-      {alerts.map(alert => {
-        const m = META[alert.type] ?? META.info
+    <div style={{ position: 'fixed', top: 72, right: 16, zIndex: 200, display: 'flex', flexDirection: 'column', gap: 8, width: 320, pointerEvents: 'none' }}>
+      {alerts.map(a => {
+        const m = META[a.type] ?? META.info
         return (
-          <div key={alert.id}
-            className="pointer-events-auto relative overflow-hidden flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl animate-slide-in"
-            style={{ background: 'var(--bg-surface)', border: `1px solid ${m.border}`, backdropFilter: 'blur(16px)' }}
+          <div
+            key={a.id}
+            className="animate-fade-up"
+            style={{
+              pointerEvents: 'auto',
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: m.bg,
+              border: `1px solid ${m.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}
           >
-            <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.bar }} />
-            <span className="text-[13px] font-bold ml-1 mt-0.5 flex-shrink-0" style={{ color: m.text }}>{m.icon}</span>
-            <p className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{alert.message}</p>
-            <button onClick={() => dismiss(alert.id)}
-              className="text-lg leading-none mt-0.5 transition-colors flex-shrink-0"
-              style={{ color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
+            <span style={{ fontSize: 13, fontWeight: 700, color: m.color, flexShrink: 0, marginTop: 1 }}>{m.icon}</span>
+            <p style={{ flex: 1, fontSize: 13, color: m.color }}>{a.message}</p>
+            <button
+              onClick={() => dismiss(a.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: m.color, fontSize: 16, lineHeight: 1, padding: 0, opacity: 0.6 }}
             >×</button>
           </div>
         )
