@@ -2,7 +2,7 @@ import { Bar, Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend } from 'chart.js'
 import { Download } from 'lucide-react'
 import AppShell from '../components/AppShell'
-import KPICard from '../components/KPICard'
+import KPICard from '../components/KpiCard'
 import { useApp } from '../context/AppContext'
 import { ClipboardCheck, Cpu, MapPin, Calendar } from 'lucide-react'
 

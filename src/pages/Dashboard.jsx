@@ -3,7 +3,7 @@ import { ClipboardCheck, Wifi, AlertCircle, MapPin, ArrowRight } from 'lucide-re
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js'
 import AppShell from '../components/AppShell'
-import KPICard from '../components/KPICard'
+import KPICard from '../components/KpiCard'
 import StatusBadge from '../components/StatusBadge'
 import SerialBadge from '../components/SerialBadge'
 import { useApp } from '../context/AppContext'

@@ -6,7 +6,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import 'chartjs-adapter-date-fns'
 import AppShell from '../components/AppShell'
 import StatusBadge from '../components/StatusBadge'
-import KPICard from '../components/KPICard'
+import KPICard from '../components/KpiCard'
 import { useApp } from '../context/AppContext'
 import { genFFT, genTimeSeries } from '../data/seed'
 
