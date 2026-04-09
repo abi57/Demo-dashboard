@@ -60,21 +60,21 @@ export default function Dashboard() {
     <AppShell title="Dashboard">
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} iconColor="#0b3d4a" sub={`${confirmed} confirmed`} />
-        <KPICard label="Online Devices" value={online} icon={Wifi} iconColor="#16a34a" dot dotColor="#16a34a" sub={`of ${devices.length} total`} />
-        <KPICard label="Pending Confirmations" value={pending} icon={AlertCircle} iconColor={pending > 0 ? '#f59e0b' : '#16a34a'} dot dotColor={pending > 0 ? '#f59e0b' : '#16a34a'} sub="secure fixing or data flow" />
-        <KPICard label="Total Sites" value={sites} icon={MapPin} iconColor="#1b7a5e" sub="unique site owners" />
+        <KPICard label="Active" value={online} icon={Wifi} color="green" sub={`Data received in last 7 days`} />
+        <KPICard label="Pending" value={pending} icon={AlertCircle} color="amber" sub="Awaiting confirmation" />
+        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} color="teal" sub={`${confirmed} fully confirmed`} />
+        <KPICard label="Sites Covered" value={sites} icon={MapPin} color="blue" sub="Unique site owners" />
       </div>
 
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div className="vio-card">
-          <p className="vio-label" style={{ marginBottom: 16 }}>Installations — last 30 days</p>
-          <div style={{ height: 200 }}><Bar data={barData} options={barOpts} /></div>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Installations Over Time (Last 30 Days)</p>
+          <div style={{ height: 220 }}><Bar data={barData} options={barOpts} /></div>
         </div>
-        <div className="vio-card">
-          <p className="vio-label" style={{ marginBottom: 16 }}>Device status breakdown</p>
-          <div style={{ height: 200 }}><Doughnut data={donutData} options={donutOpts} /></div>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Device Status Breakdown</p>
+          <div style={{ height: 220 }}><Doughnut data={donutData} options={donutOpts} /></div>
         </div>
       </div>
 

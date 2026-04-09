@@ -118,14 +118,14 @@ export default function DeviceDetail() {
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
-        <KPICard label="Resonant Frequency" value={`${resonantHz} Hz`} />
-        <KPICard label="Peak Acceleration" value={`${device.peakAccel} g`} />
-        <KPICard label="Tilt X" value={`${device.tiltX}°`} />
-        <KPICard label="Battery" value={`${device.battery}%`} dot dotColor={device.battery < 20 ? '#dc2626' : '#16a34a'} />
+        <KPICard label="Resonant Frequency" value={`${resonantHz} Hz`} color="teal" />
+        <KPICard label="Peak Acceleration" value={`${device.peakAccel} g`} color="blue" />
+        <KPICard label="Tilt X" value={`${device.tiltX}°`} color="amber" />
+        <KPICard label="Battery" value={`${device.battery}%`} color={device.battery < 20 ? 'red' : 'green'} dot />
       </div>
 
       {/* FFT Chart */}
-      <div className="vio-card" style={{ marginBottom: 16 }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <p className="vio-label">Frequency Spectrum (FFT)</p>
@@ -148,7 +148,7 @@ export default function DeviceDetail() {
       </div>
 
       {/* Time series */}
-      <div className="vio-card" style={{ marginBottom: 16 }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
         <p className="vio-label" style={{ marginBottom: 12 }}>Peak Acceleration — Time Series</p>
         <div style={{ height: 180 }}>
           <Line data={tsData} options={tsOpts} />
@@ -156,7 +156,7 @@ export default function DeviceDetail() {
       </div>
 
       {/* Alert log */}
-      <div className="vio-card">
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
         <p className="vio-label" style={{ marginBottom: 12 }}>Recent Alerts</p>
         <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--vio-text-muted)', fontSize: 13 }}>
           No recent alerts for this device.

@@ -22,99 +22,128 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const W = collapsed ? 64 : 240
+  const W = collapsed ? 72 : 260
 
   return (
     <aside style={{
       position: 'fixed', top: 0, left: 0, bottom: 0, width: W,
-      background: 'var(--vio-sidebar-bg)',
-      borderRight: '0.5px solid var(--vio-sidebar-border)',
+      background: '#f5f5f5',
       display: 'flex', flexDirection: 'column', zIndex: 40,
       transition: 'width 0.2s ease', overflow: 'hidden',
+      boxShadow: '1px 0 4px rgba(0,0,0,0.03)',
     }}>
-      {/* Brand */}
-      <div style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '0.5px solid var(--vio-sidebar-border)', flexShrink: 0, gap: 10 }}>
-        {/* Logo mark */}
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
-          <rect width="28" height="28" rx="7" fill="#0b3d4a"/>
-          <circle cx="14" cy="14" r="4" stroke="white" strokeWidth="1.5" fill="none"/>
-          <path d="M14 5v3M14 20v3M5 14h3M20 14h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-          <path d="M7.5 7.5l2 2M18.5 18.5l2 2M7.5 20.5l2-2M18.5 9.5l2-2" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeLinecap="round"/>
-        </svg>
-        {!collapsed && (
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--vio-primary)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Viotel</div>
-            <div style={{ fontSize: 11, color: 'var(--vio-text-muted)', fontWeight: 500 }}>myViotel</div>
-          </div>
-        )}
+
+      {/* ── Brand area — logo centered ── */}
+      <div style={{
+        height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 16px',
+        flexShrink: 0,
+        background: '#f5f5f5',
+        borderBottom: '1px solid #e5e5e5',
+      }}>
+        <img
+          src="/logo.webp"
+          alt="Viotel"
+          style={{
+            height: collapsed ? 30 : 50,
+            width: 'auto',
+            objectFit: 'contain',
+          }}
+        />
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '8px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {NAV.map(({ to, label, Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/dashboard'}
-            title={collapsed ? label : undefined}
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: collapsed ? '10px 18px' : '9px 12px',
-              borderRadius: 8, marginBottom: 2,
-              textDecoration: 'none', fontSize: 14, fontWeight: 400,
-              color: isActive ? 'var(--vio-primary)' : 'var(--vio-text-secondary)',
-              background: isActive ? 'rgba(11,61,74,0.08)' : 'transparent',
-              borderLeft: isActive ? '3px solid var(--vio-primary)' : '3px solid transparent',
-              whiteSpace: 'nowrap', overflow: 'hidden',
-            })}
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={16} style={{ flexShrink: 0, color: isActive ? 'var(--vio-primary)' : 'var(--vio-text-muted)' }} />
-                {!collapsed && <span>{label}</span>}
-              </>
-            )}
-          </NavLink>
-        ))}
+      {/* ── Navigation ── */}
+      <nav style={{ flex: 1, padding: collapsed ? '16px 10px' : '16px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {NAV.map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/dashboard'}
+              title={collapsed ? label : undefined}
+              style={({ isActive }) => ({
+                display: 'flex', alignItems: 'center',
+                gap: 14,
+                padding: collapsed ? '11px 16px' : '11px 16px',
+                borderRadius: 10,
+                textDecoration: 'none',
+                fontSize: 15,
+                fontWeight: isActive ? 500 : 400,
+                color: isActive ? '#e84393' : '#4b5563',
+                background: isActive ? 'rgba(232,67,147,0.08)' : 'transparent',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                transition: 'background 0.12s, color 0.12s',
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={20}
+                    strokeWidth={isActive ? 2 : 1.5}
+                    style={{ flexShrink: 0, color: isActive ? '#e84393' : '#9ca3af' }}
+                  />
+                  {!collapsed && <span>{label}</span>}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
-      {/* Collapse toggle */}
+      {/* ── Collapse toggle ── */}
       <button
         onClick={() => setCollapsed(c => !c)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          height: 36, margin: '0 8px 4px',
-          background: 'transparent', border: '0.5px solid var(--vio-card-border)',
-          borderRadius: 8, cursor: 'pointer', color: 'var(--vio-text-muted)',
-          flexShrink: 0,
+          height: 36, margin: '0 12px 8px',
+          background: '#fff', border: '1px solid #e5e5e5',
+          borderRadius: 10, cursor: 'pointer', color: '#9ca3af',
+          flexShrink: 0, transition: 'background 0.12s',
         }}
+        onMouseEnter={e => e.currentTarget.style.background = '#ebebeb'}
+        onMouseLeave={e => e.currentTarget.style.background = '#fff'}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      {/* User footer */}
+      {/* ── User footer ── */}
       {user && (
-        <div style={{ padding: '12px 8px', borderTop: '0.5px solid var(--vio-sidebar-border)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderRadius: 8, marginBottom: 4 }}>
+        <div style={{ padding: '12px 12px 16px', borderTop: '1px solid #e5e5e5', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, marginBottom: 8 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%', background: 'var(--vio-primary)',
+              width: 34, height: 34, borderRadius: '50%',
+              background: '#e84393',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+              fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
             }}>
               {user.name?.[0]?.toUpperCase()}
             </div>
             {!collapsed && (
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--vio-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.company}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.name}
+                </div>
+                <div style={{ fontSize: 12, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.company}
+                </div>
               </div>
             )}
           </div>
           <button
             onClick={() => { logout(); navigate('/login') }}
-            className="vio-btn vio-btn-ghost vio-btn-sm"
-            style={{ width: '100%', justifyContent: collapsed ? 'center' : 'flex-start', gap: 6 }}
+            style={{
+              width: '100%', height: 36, display: 'flex', alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: 10, padding: '0 14px',
+              background: '#fff', border: '1px solid #e5e5e5',
+              borderRadius: 10, cursor: 'pointer',
+              fontSize: 13, color: '#6b7280', fontFamily: 'inherit',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#ebebeb' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
             title="Sign out"
           >
             <LogOut size={14} />

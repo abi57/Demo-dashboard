@@ -77,19 +77,19 @@ export default function Reports() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} />
-        <KPICard label="Total Devices" value={devices.length} icon={Cpu} />
-        <KPICard label="This Month" value={thisMonth} icon={Calendar} />
-        <KPICard label="Sites Covered" value={sites} icon={MapPin} />
+        <KPICard label="Total Installations" value={installations.length} icon={ClipboardCheck} color="teal" />
+        <KPICard label="Total Devices" value={devices.length} icon={Cpu} color="green" />
+        <KPICard label="This Month" value={thisMonth} icon={Calendar} color="pink" />
+        <KPICard label="Sites Covered" value={sites} icon={MapPin} color="blue" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div className="vio-card">
-          <p className="vio-label" style={{ marginBottom: 16 }}>Installations by Company</p>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Installations by Company</p>
           <div style={{ height: 220 }}><Bar data={barData} options={barOpts} /></div>
         </div>
-        <div className="vio-card">
-          <p className="vio-label" style={{ marginBottom: 16 }}>Monthly Trend</p>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Monthly Trend</p>
           <div style={{ height: 220 }}><Line data={lineData} options={lineOpts} /></div>
         </div>
       </div>
