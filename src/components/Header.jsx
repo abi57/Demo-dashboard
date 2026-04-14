@@ -1,32 +1,34 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell, Sun, Moon, ChevronDown, LogOut, User } from 'lucide-react'
+import { Search, Sun, Moon, Settings, LogOut, ChevronDown, Bell, X, CheckCircle, AlertTriangle, Info, Menu } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useNotifications } from '../context/NotificationContext'
 
-export default function Header({ title, sidebarWidth = 260 }) {
+export default function Header({ title, onMenuToggle }) {
   const { user, logout } = useAuth()
   const { isDark, toggle } = useTheme()
+  const { items, remove, clearAll } = useNotifications()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
 
   function handleSearch(e) {
     e.preventDefault()
     if (search.trim()) navigate(`/install-records?q=${encodeURIComponent(search.trim())}`)
   }
 
+  const iconMap = { success: <CheckCircle size={15} color="#16a34a" />, error: <AlertTriangle size={15} color="#dc2626" />, info: <Info size={15} color="#3b82f6" /> }
+  const unread = items.length
+
   return (
-    <header style={{
-      position: 'fixed', top: 0, left: sidebarWidth, right: 0,
-      height: 68, zIndex: 30,
-      background: 'linear-gradient(135deg, #e84393 0%, #a855f7 40%, #6366f1 70%, #3b82f6 100%)',
-      borderBottom: 'none',
-      display: 'flex', alignItems: 'center',
-      padding: '0 28px', gap: 20,
-      transition: 'left 0.2s ease',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    }}>
+    <header className="app-header">
+      {/* Mobile hamburger */}
+      <button onClick={onMenuToggle} className="mobile-menu-btn" style={headerBtnStyle} title="Menu">
+        <Menu size={20} />
+      </button>
+
       {/* Search */}
       <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: 420, position: 'relative' }}>
         <Search size={15} style={{
@@ -34,16 +36,13 @@ export default function Header({ title, sidebarWidth = 260 }) {
           color: 'rgba(255,255,255,0.5)', pointerEvents: 'none',
         }} />
         <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+          value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search records, devices, sites…"
           style={{
             width: '100%', height: 40, borderRadius: 10,
             border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(8px)',
-            padding: '0 14px 0 40px',
-            fontSize: 14, color: '#fff',
+            background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+            padding: '0 14px 0 40px', fontSize: 14, color: '#fff',
             outline: 'none', fontFamily: 'inherit',
           }}
           onFocus={e => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.borderColor = 'rgba(255,255,255,0.35)' }}
@@ -54,118 +53,122 @@ export default function Header({ title, sidebarWidth = 260 }) {
 
       <div style={{ flex: 1 }} />
 
-      {/* Right controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Notifications */}
-        <button
-          style={{
-            width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)',
-            cursor: 'pointer', color: 'rgba(255,255,255,0.8)', position: 'relative',
-            transition: 'background 0.12s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-          title="Notifications"
-        >
-          <Bell size={18} />
-          <span style={{
-            position: 'absolute', top: 8, right: 8,
-            width: 8, height: 8, borderRadius: '50%',
-            background: '#fbbf24', border: '2px solid rgba(168,85,247,0.6)',
-          }} />
-        </button>
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          style={{
-            width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)',
-            cursor: 'pointer', color: 'rgba(255,255,255,0.8)',
-            transition: 'background 0.12s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-          title={isDark ? 'Light mode' : 'Dark mode'}
-        >
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
-
-        {/* User avatar dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Notification bell */}
         <div style={{ position: 'relative' }}>
           <button
-            onClick={() => setMenuOpen(o => !o)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '4px 12px 4px 4px', borderRadius: 20,
-              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)',
-              cursor: 'pointer', transition: 'background 0.12s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            onClick={() => { setBellOpen(o => !o); setMenuOpen(false) }}
+            style={headerBtnStyle}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+            title="Notifications"
           >
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: '#fff',
-            }}>
-              {user?.name?.[0]?.toUpperCase()}
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>
-              {user?.name?.split(' ')[0]}
-            </span>
-            <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <Bell size={18} />
+            {unread > 0 && (
+              <span style={{
+                position: 'absolute', top: 6, right: 6,
+                minWidth: 16, height: 16, borderRadius: 99,
+                background: '#fbbf24', border: '2px solid rgba(168,85,247,0.6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9, fontWeight: 700, color: '#000',
+              }}>{unread > 9 ? '9+' : unread}</span>
+            )}
           </button>
 
-          {menuOpen && (
+          {bellOpen && (
             <>
-              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+              <div onClick={() => setBellOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
               <div style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                background: 'var(--vio-card-bg)', border: '0.5px solid var(--vio-card-border)',
-                borderRadius: 12, padding: 6, minWidth: 220,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100,
+                background: 'var(--vio-card-bg)', border: '1px solid var(--vio-card-border)',
+                borderRadius: 14, width: 340, maxHeight: 400, overflow: 'hidden',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)', zIndex: 100,
               }}>
-                <div style={{ padding: '12px 16px', borderBottom: '0.5px solid var(--vio-card-border)', marginBottom: 4 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{user?.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--vio-text-muted)', marginTop: 2 }}>{user?.email}</div>
-                  <div style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 1 }}>{user?.company}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--vio-card-border)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-primary)' }}>Notifications</span>
+                  {items.length > 0 && (
+                    <button onClick={clearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--vio-text-muted)', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                      Clear all
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => { setMenuOpen(false); navigate('/settings') }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                    padding: '10px 16px', background: 'none', border: 'none',
-                    cursor: 'pointer', borderRadius: 8, fontSize: 14,
-                    color: 'var(--vio-text-secondary)', fontFamily: 'inherit',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--vio-page-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
-                  <User size={16} /> Profile & Settings
-                </button>
-                <button
-                  onClick={() => { logout(); navigate('/login') }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                    padding: '10px 16px', background: 'none', border: 'none',
-                    cursor: 'pointer', borderRadius: 8, fontSize: 14,
-                    color: '#dc2626', fontFamily: 'inherit',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
-                  <LogOut size={16} /> Sign out
-                </button>
+                <div style={{ overflowY: 'auto', maxHeight: 340 }}>
+                  {items.length === 0 ? (
+                    <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--vio-text-muted)', fontSize: 13 }}>
+                      No notifications
+                    </div>
+                  ) : items.map(n => (
+                    <div key={n.id} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                      padding: '12px 16px', borderBottom: '1px solid var(--vio-card-border)',
+                    }}>
+                      <div style={{ marginTop: 2, flexShrink: 0 }}>{iconMap[n.type] || iconMap.info}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, color: 'var(--vio-text-primary)', lineHeight: 1.4 }}>{n.message}</p>
+                        <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 3 }}>{n.time}</p>
+                      </div>
+                      <button onClick={() => remove(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-text-muted)', padding: 2, flexShrink: 0 }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
         </div>
+
+        {/* Theme toggle */}
+        <button onClick={toggle} style={headerBtnStyle} title={isDark ? 'Light mode' : 'Dark mode'}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}>
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        {/* Company dropdown */}
+        {user && (
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => { setMenuOpen(o => !o); setBellOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 14px 6px 6px', borderRadius: 20, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', transition: 'background 0.12s', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                {user.company?.[0]?.toUpperCase()}
+              </div>
+              <span className="company-label" style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>{user.company}</span>
+              <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </button>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--vio-card-bg)', border: '0.5px solid var(--vio-card-border)', borderRadius: 12, padding: 6, minWidth: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100 }}>
+                  <button onClick={() => { setMenuOpen(false); navigate('/settings') }} style={menuItemStyle}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--vio-page-bg)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <Settings size={16} /> Settings
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); logout(); navigate('/login') }} style={{ ...menuItemStyle, color: '#dc2626' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <LogOut size={16} /> Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )
+}
+
+const headerBtnStyle = {
+  width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)',
+  cursor: 'pointer', color: 'rgba(255,255,255,0.8)', transition: 'background 0.12s', position: 'relative',
+}
+
+const menuItemStyle = {
+  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+  padding: '10px 16px', background: 'none', border: 'none',
+  cursor: 'pointer', borderRadius: 8, fontSize: 14,
+  color: 'var(--vio-text-secondary)', fontFamily: 'inherit', transition: 'background 0.1s',
 }

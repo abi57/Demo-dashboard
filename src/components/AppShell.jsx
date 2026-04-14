@@ -1,31 +1,23 @@
+import { useState } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
 export default function AppShell({ title, children }) {
-  const sidebarWidth = 260
+  const [mobileNav, setMobileNav] = useState(false)
 
   return (
     <div style={{ display: 'flex', minHeight: '100svh', background: 'var(--vio-page-bg)' }}>
-      {/* Sidebar — full height, left side */}
-      <Sidebar />
+      {/* Mobile overlay */}
+      {mobileNav && (
+        <div onClick={() => setMobileNav(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 39 }} />
+      )}
 
-      {/* Main area — right of sidebar */}
-      <div style={{
-        flex: 1, marginLeft: sidebarWidth,
-        display: 'flex', flexDirection: 'column',
-        minHeight: '100svh',
-        transition: 'margin-left 0.2s ease',
-      }}>
-        {/* Header — top of main area, right of sidebar */}
-        <Header title={title} sidebarWidth={sidebarWidth} />
+      <Sidebar mobileOpen={mobileNav} onClose={() => setMobileNav(false)} />
 
-        {/* Page content — below header */}
-        <main style={{
-          flex: 1,
-          padding: '92px 28px 40px',
-          maxWidth: 1400,
-          width: '100%',
-        }}>
+      <div className="app-main">
+        <Header title={title} onMenuToggle={() => setMobileNav(o => !o)} />
+        <main className="app-content">
           {children}
         </main>
       </div>

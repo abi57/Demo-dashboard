@@ -21,7 +21,7 @@ export function AppProvider({ children }) {
 
   function addInstallation(record) {
     const id = `INS-${String(data.installations.length + 1).padStart(3, '0')}`
-    const newRec = { ...record, id, submitted: new Date().toLocaleString('en-AU') }
+    const newRec = { ...record, id, submitted: new Date().toLocaleString('en-AU'), isNew: true }
     setData(d => ({ ...d, installations: [newRec, ...d.installations] }))
     return id
   }
