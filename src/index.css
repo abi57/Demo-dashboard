@@ -239,6 +239,7 @@ input, select, textarea, button { font-family: inherit; }
   box-shadow: 1px 0 4px rgba(0,0,0,0.03);
   border-right: 1px solid var(--vio-sidebar-border);
   transition: transform 0.25s ease;
+  will-change: transform;
 }
 
 .app-main {
@@ -267,24 +268,152 @@ input, select, textarea, button { font-family: inherit; }
 
 .mobile-menu-btn { display: none !important; }
 
+/* Header search */
+.header-search {
+  flex: 1; max-width: 420px; position: relative; min-width: 0;
+}
+.header-search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: rgba(255,255,255,0.5); pointer-events: none;
+}
+.header-search-input {
+  width: 100%; height: 40px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+  padding: 0 14px 0 40px; font-size: 14px; color: #fff;
+  outline: none; font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.header-search-input::placeholder { color: rgba(255,255,255,0.5); }
+
+/* Header icon buttons */
+.header-icon-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer; color: rgba(255,255,255,0.8);
+  transition: background 0.12s; position: relative; flex-shrink: 0;
+}
+.header-icon-btn:hover { background: rgba(255,255,255,0.2); }
+
 /* ─── Tablet (≤1024px) ──────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
+  html { font-size: 14px; }
   .sidebar { transform: translateX(-100%); }
   .sidebar--open { transform: translateX(0); }
   .app-main { margin-left: 0; }
   .app-header { left: 0; padding: 0 16px; gap: 12; }
   .app-content { padding: 84px 16px 32px; }
   .mobile-menu-btn { display: flex !important; }
+  .header-search { max-width: none; margin-left: 10px; flex: 1; }
+  .header-search-input { height: 38px; font-size: 13px; border-radius: 9px; padding-left: 36px; }
+  .header-search-icon { left: 12px; }
+  .header-icon-btn { width: 38px; height: 38px; border-radius: 9px; }
+  .vio-card { padding: 18px 20px; border-radius: 10px; }
+  .vio-btn { height: 38px; padding: 0 18px; font-size: 13px; }
+  .vio-btn-sm { height: 30px; padding: 0 10px; font-size: 12px; }
+  .vio-input { height: 38px; font-size: 13px; }
+  .vio-h1 { font-size: 30px; }
+  .vio-h2 { font-size: 22px; }
+  .vio-h3 { font-size: 16px; }
+  .vio-toast { min-width: 240px; max-width: 320px; font-size: 13px; padding: 10px 14px; }
 }
 
-/* ─── Mobile (≤640px) ───────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .app-header { height: 56px; padding: 0 12px; gap: 8; }
-  .app-content { padding: 72px 12px 24px; }
-  .sidebar { width: 280px; }
-  .vio-card { padding: 16px; }
+/* ─── Mobile Landscape (≤768px) ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  html { font-size: 13.5px; }
+  .app-header { height: 60px; padding: 0 12px; gap: 10; }
+  .app-content { padding: 76px 14px 28px; }
+  .header-search-input { height: 36px; font-size: 12.5px; padding-left: 34px; border-radius: 8px; }
+  .header-search-icon { left: 11px; width: 14px; height: 14px; }
+  .header-icon-btn { width: 36px; height: 36px; border-radius: 8px; }
+  .header-right { gap: 6px !important; }
   .company-label { display: none; }
-  .app-header form { max-width: 200px !important; }
+  .vio-card { padding: 16px 18px; }
+  .vio-card [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .vio-card [style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
+  .vio-card [style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
+  .vio-btn { height: 36px; padding: 0 16px; font-size: 13px; border-radius: 7px; }
+  .vio-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
+  .vio-input { height: 36px; font-size: 13px; border-radius: 7px; }
+  .vio-badge { font-size: 10px; padding: 2px 6px; }
+  .auth-card { padding: 32px 28px; }
+  .auth-row { grid-template-columns: 1fr; gap: 18px; }
+  .auth-input { height: 44px; font-size: 14px; }
+  .auth-submit { height: 46px; font-size: 14px; }
+  .auth-container, .auth-container--wide { max-width: 100%; }
+  .sidebar { width: 280px; }
+}
+
+/* ─── Mobile Portrait (≤480px) ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  html { font-size: 13px; }
+  .app-header { height: 52px; padding: 0 8px; gap: 6; }
+  .app-content { padding: 66px 10px 20px; }
+  .header-search-input { height: 32px; font-size: 11.5px; padding-left: 30px; border-radius: 7px; }
+  .header-search-icon { left: 9px; width: 12px; height: 12px; }
+  .header-icon-btn { width: 32px; height: 32px; border-radius: 7px; }
+  .header-icon-btn svg { width: 15px; height: 15px; }
+  .header-right { gap: 4px !important; }
+  .vio-card { padding: 14px; border-radius: 8px; }
+  .vio-card [style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
+  .vio-btn { height: 34px; padding: 0 12px; font-size: 12px; border-radius: 7px; gap: 6px; }
+  .vio-btn-sm { height: 26px; padding: 0 8px; font-size: 11px; }
+  .vio-input { height: 34px; font-size: 12px; padding: 0 10px; border-radius: 7px; }
+  .vio-input-sm { height: 30px; font-size: 11px; }
+  .vio-table th { font-size: 10px; padding: 8px 10px; }
+  .vio-table td { padding: 10px; font-size: 12px; }
+  .vio-badge { font-size: 9px; padding: 1px 5px; }
+  .vio-h1 { font-size: 24px; }
+  .vio-h2 { font-size: 18px; }
+  .vio-h3 { font-size: 14px; }
+  .vio-toast { min-width: 200px; max-width: 280px; font-size: 12px; padding: 8px 12px; border-radius: 8px; }
+  .auth-card { padding: 24px 18px; border-radius: 14px; }
+  .auth-brand { margin-bottom: 28px; }
+  .auth-brand-name { font-size: 24px; }
+  .auth-brand-sub { font-size: 12px; }
+  .auth-heading { font-size: 18px; margin-bottom: 20px; }
+  .auth-label { font-size: 12px; margin-bottom: 6px; }
+  .auth-input { height: 42px; font-size: 13px; padding: 0 12px; }
+  .auth-submit { height: 42px; font-size: 13px; border-radius: 10px; }
+  .auth-form { gap: 16px; }
+  .auth-switch { font-size: 12px; margin-top: 20px; }
+  .auth-demo { padding: 12px 14px; }
+  .auth-demo-label { font-size: 9px; }
+  .auth-demo-value { font-size: 11px; }
+}
+
+/* ─── Small Phone (≤360px) ──────────────────────────────────────────────────── */
+@media (max-width: 360px) {
+  html { font-size: 12px; }
+  .app-header { padding: 0 6px; gap: 4; }
+  .app-content { padding: 60px 8px 16px; }
+  .header-search-input { height: 30px; font-size: 11px; padding-left: 26px; }
+  .header-search-icon { left: 7px; width: 11px; height: 11px; }
+  .header-icon-btn { width: 28px; height: 28px; border-radius: 6px; }
+  .header-icon-btn svg { width: 13px; height: 13px; }
+  .vio-card { padding: 12px; }
+  .vio-btn { height: 32px; padding: 0 10px; font-size: 11px; }
+  .vio-input { height: 32px; font-size: 11px; padding: 0 8px; }
+  .auth-card { padding: 20px 14px; }
+}
+
+/* ─── Large Desktop (≥1536px) ───────────────────────────────────────────────── */
+@media (min-width: 1536px) {
+  html { font-size: 16px; }
+  .app-content { max-width: 1600px; padding: 100px 40px 48px; }
+  .app-header { padding: 0 36px; height: 72px; }
+  .header-search { max-width: 500px; }
+  .header-search-input { height: 44px; font-size: 15px; }
+  .header-icon-btn { width: 44px; height: 44px; }
+  .vio-card { padding: 24px 28px; }
+  .vio-btn { height: 44px; padding: 0 24px; font-size: 15px; }
+  .vio-input { height: 44px; font-size: 15px; }
+  .vio-h1 { font-size: 40px; }
+  .vio-h2 { font-size: 30px; }
+  .auth-card { padding: 48px 44px; }
+  .auth-input { height: 52px; font-size: 16px; }
+  .auth-submit { height: 54px; font-size: 16px; }
 }
 
 /* ─── Auth pages ────────────────────────────────────────────────────────────── */
@@ -529,23 +658,4 @@ input, select, textarea, button { font-family: inherit; }
 [data-theme="dark"] .auth-brand-sub { color: #4b6a75; }
 [data-theme="dark"] .auth-error-banner { background: #1c1214; border-color: #5c1a1a; }
 
-/* Responsive */
-@media (max-width: 540px) {
-  .auth-card { padding: 32px 24px; }
-  .auth-row { grid-template-columns: 1fr; gap: 22px; }
-  .auth-container, .auth-container--wide { max-width: 100%; }
-  .auth-brand { margin-bottom: 32px; }
-}
-
-/* ─── Responsive form grids ─────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .vio-card [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
-  .vio-card [style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
-  .vio-card [style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
-}
-
-@media (max-width: 480px) {
-  .vio-card [style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
-  .vio-btn { font-size: 13px; padding: 0 14px; }
-  .vio-input { font-size: 14px; }
-}
+/* Responsive auth handled in breakpoints above */

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, X, Plus, Camera, Trash2, Play, Square, ArrowUp, ArrowDown } from 'lucide-react'
+import { Upload, X, Plus, Camera, Trash2, Play, Square, ArrowUp, ArrowDown, Video } from 'lucide-react'
 import AppShell from '../components/AppShell'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
@@ -78,8 +78,24 @@ export default function NewInstallation() {
   const installCanvasRef = useRef()
   const serialFileRef = useRef()
   const installFileRef = useRef()
+  const [videos, setVideos] = useState([])
+  const [videoCamOpen, setVideoCamOpen] = useState(false)
+  const [videoCamStream, setVideoCamStream] = useState(null)
+  const [videoRecorder, setVideoRecorder] = useState(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const videoCamRef = useRef()
+  const videoFileRef = useRef()
+  const videoChunksRef = useRef([])
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+
+  // Mobile detection — use native camera on touch devices
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+  // Native capture refs (for mobile)
+  const serialCaptureRef = useRef()
+  const installCaptureRef = useRef()
+  const videoCaptureRef = useRef()
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
 
@@ -156,6 +172,55 @@ export default function NewInstallation() {
     })
   }
 
+  // Video camera functions
+  async function openVideoCam() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true })
+      setVideoCamStream(stream)
+      setVideoCamOpen(true)
+      setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
+    } catch { alert('Unable to access camera/microphone.') }
+  }
+
+  function startRecording() {
+    if (!videoCamStream) return
+    videoChunksRef.current = []
+    const recorder = new MediaRecorder(videoCamStream, { mimeType: MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4' })
+    recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
+    recorder.onstop = () => {
+      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType })
+      const url = URL.createObjectURL(blob)
+      setVideos(v => [...v, { url, name: `tower-video-${v.length + 1}.webm`, blob }])
+    }
+    recorder.start()
+    setVideoRecorder(recorder)
+    setIsRecording(true)
+  }
+
+  function stopRecording() {
+    if (videoRecorder && videoRecorder.state !== 'inactive') {
+      videoRecorder.stop()
+    }
+    setIsRecording(false)
+    setVideoRecorder(null)
+    closeVideoCam()
+  }
+
+  function closeVideoCam() {
+    if (videoCamStream) videoCamStream.getTracks().forEach(t => t.stop())
+    setVideoCamStream(null)
+    setVideoCamOpen(false)
+    setIsRecording(false)
+    setVideoRecorder(null)
+  }
+
+  function handleVideoFiles(files) {
+    Array.from(files).forEach(file => {
+      const url = URL.createObjectURL(file)
+      setVideos(v => [...v, { url, name: file.name, blob: file }])
+    })
+  }
+
   function validate() {
     const e = {}
     if (!form.installerName.trim()) e.installerName = 'Installer name is required'
@@ -201,7 +266,7 @@ export default function NewInstallation() {
       structuralElement: form.structuralElement,
       batteryVoltage: form.batteryVoltage || null, dcOutput: form.dcOutput || null,
       secureFixing: form.secureFixing, dataFlow: form.dataFlow,
-      photos, serialPhotos, climbs: climbs.map(c => ({
+      photos, serialPhotos, videos: videos.map(v => ({ url: v.url, name: v.name })), climbs: climbs.map(c => ({
         upStart: c.upStart ? fmtTime(c.upStart) : '',
         upFinish: c.upFinish ? fmtTime(c.upFinish) : '',
         downStart: c.downStart ? fmtTime(c.downStart) : '',
@@ -286,13 +351,15 @@ export default function NewInstallation() {
             {/* Buttons */}
             {serialPhotos.length < 5 && !cameraOpen && (
               <div style={{ display: 'flex', gap: 12, marginBottom: serialPhotos.length > 0 ? 14 : 0 }}>
-                <button type="button" onClick={openCamera} className="vio-btn vio-btn-secondary" style={{ gap: 8, height: 44, padding: '0 24px', fontSize: 14 }}>
+                <button type="button" onClick={() => isMobile ? serialCaptureRef.current.click() : openCamera()} className="vio-btn vio-btn-secondary" style={{ gap: 8, height: 44, padding: '0 24px', fontSize: 14 }}>
                   <Camera size={18} /> Take Photo
                 </button>
                 <button type="button" onClick={() => serialFileRef.current.click()} className="vio-btn vio-btn-ghost" style={{ gap: 8, height: 44, padding: '0 24px', fontSize: 14 }}>
                   <Upload size={18} /> Upload Photo
                 </button>
                 <input ref={serialFileRef} type="file" multiple accept="image/*,.heic" style={{ display: 'none' }}
+                  onChange={e => { handleSerialFiles(e.target.files); e.target.value = '' }} />
+                <input ref={serialCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                   onChange={e => { handleSerialFiles(e.target.files); e.target.value = '' }} />
               </div>
             )}
@@ -533,7 +600,7 @@ export default function NewInstallation() {
           {/* Buttons */}
           {!installCamOpen && (
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: photos.length > 0 ? 20 : 0 }}>
-              <button type="button" onClick={openInstallCam} className="vio-btn vio-btn-secondary"
+              <button type="button" onClick={() => isMobile ? installCaptureRef.current.click() : openInstallCam()} className="vio-btn vio-btn-secondary"
                 style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
                 <Camera size={28} />
                 Take Photo
@@ -544,6 +611,8 @@ export default function NewInstallation() {
                 Upload Photo
               </button>
               <input ref={installFileRef} type="file" multiple accept="image/*,.heic" style={{ display: 'none' }}
+                onChange={e => { handleInstallFiles(e.target.files); e.target.value = '' }} />
+              <input ref={installCaptureRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                 onChange={e => { handleInstallFiles(e.target.files); e.target.value = '' }} />
             </div>
           )}
@@ -559,6 +628,80 @@ export default function NewInstallation() {
                     <button type="button" onClick={() => setPhotos(ph => ph.filter((_, j) => j !== i))}
                       style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Tower Video */}
+        <div className="vio-card" style={{ marginBottom: 24 }}>
+          <SectionLabel>Tower Video</SectionLabel>
+          <p style={{ fontSize: 12, color: 'var(--vio-text-muted)', marginBottom: 14 }}>Record or upload a video of the tower installation. MP4, MOV, WEBM accepted.</p>
+
+          {/* Video camera viewfinder */}
+          {videoCamOpen && (
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', maxWidth: 480 }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center' }}>
+                {!isRecording ? (
+                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
+                  </button>
+                ) : (
+                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
+                    <Square size={12} /> Stop Recording
+                  </button>
+                )}
+                {!isRecording && (
+                  <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>
+                )}
+                {isRecording && (
+                  <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', animation: 'spin 1s linear infinite' }} />
+                    Recording…
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Buttons */}
+          {!videoCamOpen && (
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videos.length > 0 ? 20 : 0 }}>
+              <button type="button" onClick={() => isMobile ? videoCaptureRef.current.click() : openVideoCam()} className="vio-btn vio-btn-secondary"
+                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+                <Video size={28} />
+                Record Video
+              </button>
+              <button type="button" onClick={() => videoFileRef.current.click()} className="vio-btn vio-btn-ghost"
+                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+                <Upload size={28} />
+                Upload Video
+              </button>
+              <input ref={videoFileRef} type="file" multiple accept="video/*" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files); e.target.value = '' }} />
+              <input ref={videoCaptureRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files); e.target.value = '' }} />
+            </div>
+          )}
+
+          {/* Video list */}
+          {videos.length > 0 && (
+            <>
+              <p style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginBottom: 10 }}>{videos.length} video{videos.length !== 1 ? 's' : ''}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {videos.map((v, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: '1px solid var(--vio-card-border)', background: 'var(--vio-page-bg)' }}>
+                    <video src={v.url} controls style={{ width: 160, height: 90, borderRadius: 8, objectFit: 'cover', background: '#000' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
+                    </div>
+                    <button type="button" onClick={() => setVideos(vids => vids.filter((_, j) => j !== i))}
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(220,38,38,0.08)', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <X size={14} />
                     </button>
                   </div>
                 ))}
