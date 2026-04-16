@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Viotel API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Viotel API", version="1.0.0", lifespan=lifespan, redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,

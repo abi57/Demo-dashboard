@@ -39,7 +39,7 @@ def _format(inst: Installation, company_name: str) -> InstallationOut:
     )
 
 
-@router.get("/", response_model=list[InstallationOut])
+@router.get("", response_model=list[InstallationOut])
 async def list_installations(
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
@@ -70,7 +70,7 @@ async def get_installation(
     return _format(inst, company.name)
 
 
-@router.post("/", response_model=InstallationOut, status_code=201)
+@router.post("", response_model=InstallationOut, status_code=201)
 async def create_installation(
     body: InstallationCreate,
     company: Company = Depends(get_current_company),
