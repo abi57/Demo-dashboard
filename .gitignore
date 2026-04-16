@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local env (dev only — .env.production goes to git for Railway)
+.env
+server/.env
+server/uploads/
+server/__pycache__/
+server/routers/__pycache__/
