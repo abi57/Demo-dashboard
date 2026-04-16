@@ -27,16 +27,22 @@ export default function Settings() {
 
   const [report, setReport] = useState({ subject: '', message: '' })
 
-  function handleChangePassword() {
+  async function handleChangePassword() {
     const errs = {}
     if (!pw.current) errs.current = 'Current password is required'
     if (!pw.newPw) errs.newPw = 'New password is required'
     else if (pw.newPw.length < 8) errs.newPw = 'Minimum 8 characters'
     if (pw.newPw !== pw.confirm) errs.confirm = 'Passwords do not match'
     if (Object.keys(errs).length) { setPwErrors(errs); return }
-    setPwErrors({})
-    setPw({ current: '', newPw: '', confirm: '' })
-    push('Password changed successfully', 'success')
+    try {
+      const { apiChangePassword } = await import('../api')
+      await apiChangePassword(pw.current, pw.newPw)
+      setPwErrors({})
+      setPw({ current: '', newPw: '', confirm: '' })
+      push('Password changed successfully', 'success')
+    } catch (err) {
+      setPwErrors({ current: err.message || 'Failed to change password' })
+    }
   }
 
   function handleReport() {

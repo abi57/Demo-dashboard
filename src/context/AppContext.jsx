@@ -1,73 +1,96 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { SEED_INSTALLATIONS, genDeviceReadings } from '../data/seed'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { apiListInstallations, apiCreateInstallation, apiUpdateInstallation } from '../api'
+import { useAuth } from './AuthContext'
 
 const Ctx = createContext(null)
-const KEY = 'vio_data'
-
-function loadData() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    if (saved) return saved
-  } catch {}
-  return { installations: SEED_INSTALLATIONS }
-}
 
 export function AppProvider({ children }) {
-  const [data, setData] = useState(loadData)
+  const { user } = useAuth()
+  const [installations, setInstallations] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  const fetchInstallations = useCallback(async () => {
+    if (!user) { setInstallations([]); return }
+    setLoading(true)
+    try {
+      const data = await apiListInstallations()
+      setInstallations(data)
+    } catch {
+      setInstallations([])
+    }
+    setLoading(false)
+  }, [user])
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(data))
-  }, [data])
+    fetchInstallations()
+  }, [fetchInstallations])
 
-  function addInstallation(record) {
-    const id = `INS-${String(data.installations.length + 1).padStart(3, '0')}`
-    const newRec = { ...record, id, submitted: new Date().toLocaleString('en-AU'), isNew: true }
-    setData(d => ({ ...d, installations: [newRec, ...d.installations] }))
-    return id
-  }
-
-  function updateInstallation(id, updates) {
-    setData(d => ({
-      ...d,
-      installations: d.installations.map(i => i.id === id ? { ...i, ...updates } : i),
-    }))
-  }
-
-  // Derive devices from installations
-  const devices = data.installations.flatMap(inst =>
-    inst.sensorSerials.map(serial => ({
-      ...genDeviceReadings(serial),
-      serial,
-      siteOwner: inst.siteOwner,
-      towerId: inst.towerId,
-      heightAGL: inst.heightAGL,
-      dateInstalled: inst.dateInstalled,
-      sensorType: inst.sensorType,
-      installationId: inst.id,
-    }))
-  )
-
-  // Derive sites
-  const sitesMap = {}
-  data.installations.forEach(inst => {
-    if (!sitesMap[inst.siteOwner]) sitesMap[inst.siteOwner] = { siteOwner: inst.siteOwner, towers: [] }
-    if (!sitesMap[inst.siteOwner].towers.find(t => t.towerId === inst.towerId)) {
-      sitesMap[inst.siteOwner].towers.push({
-        towerId: inst.towerId,
-        serials: inst.sensorSerials,
-        installationId: inst.id,
-      })
+  async function addInstallation(record) {
+    const payload = {
+      installer_name: record.installerName,
+      date_installed: record.dateInstalled,
+      site_owner: record.siteOwner,
+      tower_id: record.towerId,
+      sensor_serials: Array.isArray(record.sensorSerials)
+        ? record.sensorSerials.join(', ')
+        : record.sensorSerials,
+      height_agl: record.heightAGL,
+      accel_orientation: record.accelOrientation,
+      wind_orientation: record.windOrientation,
+      structural_element: record.structuralElement,
+      battery_voltage: record.batteryVoltage,
+      dc_output: record.dcOutput,
+      secure_fixing: record.secureFixing,
+      data_flow: record.dataFlow,
+      climbs: (record.climbs || []).map((c, i) => ({
+        climb_number: i + 1,
+        up_start: c.upStart || null,
+        up_finish: c.upFinish || null,
+        down_start: c.downStart || null,
+        down_finish: c.downFinish || null,
+      })),
     }
-  })
-  const sites = Object.values(sitesMap)
+    const created = await apiCreateInstallation(payload)
+    setInstallations(prev => [created, ...prev])
+    return created.id
+  }
+
+  async function updateInstallation(id, record) {
+    const payload = {
+      installer_name: record.installerName,
+      date_installed: record.dateInstalled,
+      site_owner: record.siteOwner,
+      tower_id: record.towerId,
+      sensor_serials: Array.isArray(record.sensorSerials)
+        ? record.sensorSerials.join(', ')
+        : record.sensorSerials,
+      height_agl: record.heightAGL,
+      accel_orientation: record.accelOrientation,
+      wind_orientation: record.windOrientation,
+      structural_element: record.structuralElement,
+      battery_voltage: record.batteryVoltage,
+      dc_output: record.dcOutput,
+      secure_fixing: record.secureFixing,
+      data_flow: record.dataFlow,
+      climbs: (record.climbs || []).map((c, i) => ({
+        climb_number: i + 1,
+        up_start: c.upStart || null,
+        up_finish: c.upFinish || null,
+        down_start: c.downStart || null,
+        down_finish: c.downFinish || null,
+      })),
+    }
+    const updated = await apiUpdateInstallation(id, payload)
+    setInstallations(prev => prev.map(inst => inst.id === id ? updated : inst))
+  }
 
   return (
     <Ctx.Provider value={{
-      installations: data.installations,
+      installations,
+      loading,
       addInstallation,
       updateInstallation,
-      devices,
-      sites,
+      refresh: fetchInstallations,
     }}>
       {children}
     </Ctx.Provider>

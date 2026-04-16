@@ -29,44 +29,34 @@ export default function InstallDetail() {
   const rec = installations.find(i => i.id === id)
 
   const [form, setForm] = useState(() => rec ? {
-    installerName: rec.installerName || '',
-    dateInstalled: rec.dateInstalled || '',
-    siteOwner: rec.siteOwner || '',
-    towerId: rec.towerId || '',
-    sensorSerials: Array.isArray(rec.sensorSerials) ? rec.sensorSerials.join(', ') : '',
-    heightAGL: rec.heightAGL ?? '',
-    accelOrientation: rec.accelOrientation ?? '',
-    windNA: rec.windOrientation == null,
-    windOrientation: rec.windOrientation ?? '',
-    structuralElement: rec.structuralElement || '',
-    batteryVoltage: rec.batteryVoltage || '',
-    dcOutput: rec.dcOutput || '',
-    secureFixing: rec.secureFixing,
-    dataFlow: rec.dataFlow,
+    installerName: rec.installer_name || '',
+    dateInstalled: rec.date_installed || '',
+    siteOwner: rec.site_owner || '',
+    towerId: rec.tower_id || '',
+    sensorSerials: rec.sensor_serials || '',
+    heightAGL: rec.height_agl ?? '',
+    accelOrientation: rec.accel_orientation ?? '',
+    windNA: rec.wind_orientation == null,
+    windOrientation: rec.wind_orientation ?? '',
+    structuralElement: rec.structural_element || '',
+    batteryVoltage: rec.battery_voltage || '',
+    dcOutput: rec.dc_output || '',
+    secureFixing: rec.secure_fixing,
+    dataFlow: rec.data_flow,
   } : {})
 
-  const [serialPhotos, setSerialPhotos] = useState(rec?.serialPhotos || [])
-  const [photos, setPhotos] = useState(rec?.photos || [])
+  const [serialPhotos, setSerialPhotos] = useState(() =>
+    (rec?.media || []).filter(m => m.media_type === 'serial_photo').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+  )
+  const [photos, setPhotos] = useState(() =>
+    (rec?.media || []).filter(m => m.media_type === 'install_photo').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+  )
   const [climbs, setClimbs] = useState(() => {
-    if (!rec?.climbs?.length) return [{ upStart: { hh: '', mm: '', period: 'AM' }, upFinish: { hh: '', mm: '', period: 'AM' }, downStart: { hh: '', mm: '', period: 'AM' }, downFinish: { hh: '', mm: '', period: 'AM' } }]
-    return rec.climbs.map(c => {
-      const parse = (val) => {
-        if (!val || typeof val !== 'string') return { hh: '', mm: '', period: 'AM' }
-        const m = val.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
-        if (m) return { hh: m[1].padStart(2, '0'), mm: m[2], period: m[3].toUpperCase() }
-        // fallback for 24h "HH:MM" format
-        const m2 = val.match(/^(\d{1,2}):(\d{2})$/)
-        if (m2) {
-          let h = parseInt(m2[1], 10)
-          const period = h >= 12 ? 'PM' : 'AM'
-          if (h === 0) h = 12
-          else if (h > 12) h -= 12
-          return { hh: String(h).padStart(2, '0'), mm: m2[2], period }
-        }
-        return { hh: '', mm: '', period: 'AM' }
-      }
-      return { upStart: parse(c.upStart), upFinish: parse(c.upFinish), downStart: parse(c.downStart), downFinish: parse(c.downFinish) }
-    })
+    if (!rec?.climbs?.length) return [{ upStart: '', upFinish: '', downStart: '', downFinish: '' }]
+    return rec.climbs.map(c => ({
+      upStart: c.up_start || '', upFinish: c.up_finish || '',
+      downStart: c.down_start || '', downFinish: c.down_finish || '',
+    }))
   })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -96,15 +86,6 @@ export default function InstallDetail() {
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
   const inputCls = k => `vio-input${errors[k] ? ' invalid' : ''}`
-
-  function climbDur(a, b) {
-    if (!a.hh || !a.mm || !b.hh || !b.mm) return null
-    let ah = parseInt(a.hh, 10), bh = parseInt(b.hh, 10)
-    if (a.period === 'AM' && ah === 12) ah = 0; else if (a.period === 'PM' && ah !== 12) ah += 12
-    if (b.period === 'AM' && bh === 12) bh = 0; else if (b.period === 'PM' && bh !== 12) bh += 12
-    const d = (bh * 60 + parseInt(b.mm, 10)) - (ah * 60 + parseInt(a.mm, 10))
-    return d > 0 ? `${d} min` : null
-  }
 
   // Camera helpers
   async function openCam(setStream, setOpen, videoRef) {
@@ -147,7 +128,7 @@ export default function InstallDetail() {
     </div>
   )
 
-  function handleSave() {
+  async function handleSave() {
     const e = {}
     if (!form.installerName.trim()) e.installerName = 'Required'
     if (!form.siteOwner.trim()) e.siteOwner = 'Required'
@@ -160,13 +141,13 @@ export default function InstallDetail() {
     if (Object.keys(e).length) { setErrors(e); return }
 
     setSaving(true)
-    setTimeout(() => {
-      updateInstallation(id, {
+    try {
+      await updateInstallation(id, {
         installerName: form.installerName,
         dateInstalled: form.dateInstalled,
         siteOwner: form.siteOwner,
         towerId: form.towerId,
-        sensorSerials: form.sensorSerials.split(',').map(s => s.trim()).filter(Boolean),
+        sensorSerials: form.sensorSerials,
         heightAGL: parseFloat(form.heightAGL),
         accelOrientation: form.accelOrientation ? parseFloat(form.accelOrientation) : null,
         windOrientation: form.windNA ? null : (form.windOrientation ? parseFloat(form.windOrientation) : null),
@@ -175,17 +156,34 @@ export default function InstallDetail() {
         dcOutput: form.dcOutput || null,
         secureFixing: form.secureFixing,
         dataFlow: form.dataFlow,
-        serialPhotos,
-        photos,
-        climbs: climbs.map(c => {
-          const fmt = t => t.hh && t.mm ? `${t.hh}:${t.mm} ${t.period}` : ''
-          return { upStart: fmt(c.upStart), upFinish: fmt(c.upFinish), downStart: fmt(c.downStart), downFinish: fmt(c.downFinish) }
-        }),
+        climbs: climbs.map(c => ({
+          upStart: c.upStart || '', upFinish: c.upFinish || '',
+          downStart: c.downStart || '', downFinish: c.downFinish || '',
+        })),
       })
+
+      // Upload new media (items without an existing id are new)
+      const { apiUploadMedia } = await import('../api')
+      for (const p of serialPhotos) {
+        if (!p.id && (p.blob || p.url?.startsWith('data:'))) {
+          const blob = p.blob || await fetch(p.url).then(r => r.blob())
+          await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: 'image/jpeg' }))
+        }
+      }
+      for (const p of photos) {
+        if (!p.id && (p.blob || p.url?.startsWith('data:'))) {
+          const blob = p.blob || await fetch(p.url).then(r => r.blob())
+          await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: 'image/jpeg' }))
+        }
+      }
+
       setSaving(false)
       push('Installation updated successfully', 'success')
       navigate('/install-records')
-    }, 500)
+    } catch (err) {
+      setSaving(false)
+      push(err.message || 'Failed to update', 'error')
+    }
   }
 
   function PhotoSection({ title, items, setItems, camOpen, setCamOpen, camStream, setCamStream, videoRef, canvasRef, fileRef, max }) {
@@ -249,13 +247,13 @@ export default function InstallDetail() {
                 <input className={inputCls('installerName')} value={form.installerName} onChange={e => set('installerName', e.target.value)} />
               </Field>
               <Field label="Company">
-                <input className="vio-input" value={rec.company} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
+                <input className="vio-input" value={rec.company_name} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
               </Field>
               <Field label="Date Installed">
                 <input className="vio-input" type="date" value={form.dateInstalled} onChange={e => set('dateInstalled', e.target.value)} />
               </Field>
               <Field label="Submitted">
-                <input className="vio-input" value={rec.submitted} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
+                <input className="vio-input" value={rec.submitted_at ? new Date(rec.submitted_at).toLocaleString() : ''} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
               </Field>
             </div>
           </div>
@@ -340,48 +338,28 @@ export default function InstallDetail() {
             <SectionLabel>Climb Log</SectionLabel>
             {climbs.map((c, i) => (
               <div key={i} style={{ marginBottom: 16, padding: 20, borderRadius: 10, background: 'var(--vio-page-bg)', border: '0.5px solid var(--vio-card-border)' }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-primary)', marginBottom: 16 }}>Climb {i + 1}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-primary)' }}>Climb {i + 1}</p>
+                  {climbs.length > 1 && (
+                    <button type="button" onClick={() => setClimbs(p => p.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-status-red)', fontSize: 12, fontWeight: 500 }}>Remove</button>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
                   {[['upStart','Up Start'],['upFinish','Up Finish'],['downStart','Down Start'],['downFinish','Down Finish']].map(([k, label]) => (
                     <div key={k}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--vio-text-muted)', marginBottom: 6 }}>{label}</label>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        <select className="vio-input" style={{ height: 40, fontSize: 13, padding: '0 4px', width: 52, textAlign: 'center' }}
-                          value={c[k].hh} onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, [k]: { ...cl[k], hh: e.target.value } } : cl))}>
-                          <option value="">HH</option>
-                          {Array.from({ length: 12 }, (_, n) => n + 1).map(n => (
-                            <option key={n} value={String(n).padStart(2, '0')}>{String(n).padStart(2, '0')}</option>
-                          ))}
-                        </select>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-muted)' }}>:</span>
-                        <select className="vio-input" style={{ height: 40, fontSize: 13, padding: '0 4px', width: 52, textAlign: 'center' }}
-                          value={c[k].mm} onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, [k]: { ...cl[k], mm: e.target.value } } : cl))}>
-                          <option value="">MM</option>
-                          {Array.from({ length: 60 }, (_, n) => n).map(n => (
-                            <option key={n} value={String(n).padStart(2, '0')}>{String(n).padStart(2, '0')}</option>
-                          ))}
-                        </select>
-                        <select className="vio-input" style={{ height: 34, fontSize: 11, padding: '0 2px', width: 44, textAlign: 'center' }}
-                          value={c[k].period} onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, [k]: { ...cl[k], period: e.target.value } } : cl))}>
-                          <option value="AM">AM</option>
-                          <option value="PM">PM</option>
-                        </select>
-                      </div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--vio-text-muted)', marginBottom: 4 }}>{label}</label>
+                      <input className="vio-input" style={{ height: 36, fontSize: 13 }} placeholder="e.g. 09:30 AM"
+                        value={c[k]} onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, [k]: e.target.value } : cl))} />
                     </div>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-                  {climbDur(c.upStart, c.upFinish) && <span style={{ fontSize: 12, color: 'var(--vio-accent)', fontWeight: 500 }}>↑ {climbDur(c.upStart, c.upFinish)} ascent</span>}
-                  {climbDur(c.downStart, c.downFinish) && <span style={{ fontSize: 12, color: 'var(--vio-accent)', fontWeight: 500 }}>↓ {climbDur(c.downStart, c.downFinish)} descent</span>}
-                </div>
               </div>
             ))}
-            {climbs.length < 3 && (
-              <button type="button" onClick={() => setClimbs(p => [...p, { upStart: { hh: '', mm: '', period: 'AM' }, upFinish: { hh: '', mm: '', period: 'AM' }, downStart: { hh: '', mm: '', period: 'AM' }, downFinish: { hh: '', mm: '', period: 'AM' } }])}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-accent)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Plus size={14} /> Add Climb {climbs.length + 1}
-              </button>
-            )}
+            <button type="button" onClick={() => setClimbs(p => [...p, { upStart: '', upFinish: '', downStart: '', downFinish: '' }])}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-accent)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Plus size={14} /> Add Climb
+            </button>
           </div>
 
           {/* Save */}

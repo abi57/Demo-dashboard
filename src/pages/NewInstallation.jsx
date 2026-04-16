@@ -255,28 +255,53 @@ export default function NewInstallation() {
       return
     }
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 600))
-    const id = addInstallation({
-      installerName: form.installerName, company: form.company, dateInstalled: form.dateInstalled,
-      siteOwner: form.siteOwner, towerId: form.towerId,
-      sensorSerials: form.sensorSerials.split(',').map(s => s.trim()).filter(Boolean),
-      heightAGL: parseFloat(form.heightAGL),
-      accelOrientation: form.accelOrientation ? parseFloat(form.accelOrientation) : null,
-      windOrientation: form.windNA ? null : (form.windOrientation ? parseFloat(form.windOrientation) : null),
-      structuralElement: form.structuralElement,
-      batteryVoltage: form.batteryVoltage || null, dcOutput: form.dcOutput || null,
-      secureFixing: form.secureFixing, dataFlow: form.dataFlow,
-      photos, serialPhotos, videos: videos.map(v => ({ url: v.url, name: v.name })), climbs: climbs.map(c => ({
-        upStart: c.upStart ? fmtTime(c.upStart) : '',
-        upFinish: c.upFinish ? fmtTime(c.upFinish) : '',
-        downStart: c.downStart ? fmtTime(c.downStart) : '',
-        downFinish: c.downFinish ? fmtTime(c.downFinish) : '',
-      })), sensorType: 'accelerometer', status: form.dataFlow ? 'confirmed' : 'pending',
-    })
-    setSubmitting(false)
-    push('Installation record submitted successfully', 'success')
-    notify(`Installation ${id} submitted successfully`, 'success')
-    navigate(`/install-records/${id}`)
+    try {
+      const id = await addInstallation({
+        installerName: form.installerName, company: form.company, dateInstalled: form.dateInstalled,
+        siteOwner: form.siteOwner, towerId: form.towerId,
+        sensorSerials: form.sensorSerials.split(',').map(s => s.trim()).filter(Boolean),
+        heightAGL: parseFloat(form.heightAGL),
+        accelOrientation: form.accelOrientation ? parseFloat(form.accelOrientation) : null,
+        windOrientation: form.windNA ? null : (form.windOrientation ? parseFloat(form.windOrientation) : null),
+        structuralElement: form.structuralElement,
+        batteryVoltage: form.batteryVoltage || null, dcOutput: form.dcOutput || null,
+        secureFixing: form.secureFixing, dataFlow: form.dataFlow,
+        climbs: climbs.map(c => ({
+          upStart: c.upStart ? fmtTime(c.upStart) : '',
+          upFinish: c.upFinish ? fmtTime(c.upFinish) : '',
+          downStart: c.downStart ? fmtTime(c.downStart) : '',
+          downFinish: c.downFinish ? fmtTime(c.downFinish) : '',
+        })),
+      })
+
+      // Upload media files
+      const { apiUploadMedia } = await import('../api')
+      for (const p of serialPhotos) {
+        if (p.blob || p.url?.startsWith('data:')) {
+          const blob = p.blob || await fetch(p.url).then(r => r.blob())
+          await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: 'image/jpeg' }))
+        }
+      }
+      for (const p of photos) {
+        if (p.blob || p.url?.startsWith('data:')) {
+          const blob = p.blob || await fetch(p.url).then(r => r.blob())
+          await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: 'image/jpeg' }))
+        }
+      }
+      for (const v of videos) {
+        if (v.blob) {
+          await apiUploadMedia(id, 'video', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
+        }
+      }
+
+      setSubmitting(false)
+      push('Installation record submitted successfully', 'success')
+      notify(`Installation ${id} submitted successfully`, 'success')
+      navigate(`/install-records/${id}`)
+    } catch (err) {
+      setSubmitting(false)
+      notify(err.message || 'Failed to submit installation', 'error')
+    }
   }
 
   const YesNo = ({ field }) => (

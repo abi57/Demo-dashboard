@@ -28,8 +28,7 @@ export default function Login() {
     if (!form.password) errs.password = 'Password is required'
     if (Object.keys(errs).length) { setErrors(errs); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    const result = login(form.company, form.password)
+    const result = await login(form.company, form.password)
     setLoading(false)
     if (!result.ok) { setErrors({ global: result.error }); return }
     navigate('/installations/new')
