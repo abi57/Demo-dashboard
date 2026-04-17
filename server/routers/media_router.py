@@ -28,7 +28,7 @@ async def upload_media(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Installation not found")
 
-    if media_type not in ("serial_photo", "install_photo", "video"):
+    if media_type not in ("serial_photo", "install_photo", "video", "video_position_1", "video_position_2"):
         raise HTTPException(status_code=400, detail="Invalid media_type")
 
     folder = f"{company.id}/{installation_id}/{media_type}"
