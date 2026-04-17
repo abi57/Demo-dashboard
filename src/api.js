@@ -1,27 +1,31 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-function headers() {
-  const h = { 'Content-Type': 'application/json' }
-  const token = localStorage.getItem('vio_token')
-  if (token) h['Authorization'] = `Bearer ${token}`
-  return h
-}
-
-function authHeaders() {
-  const h = {}
-  const token = localStorage.getItem('vio_token')
-  if (token) h['Authorization'] = `Bearer ${token}`
-  return h
+function getToken() {
+  return localStorage.getItem('vio_token')
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, { headers: headers(), ...options })
-  if (res.status === 401) {
-    localStorage.removeItem('vio_token')
-    localStorage.removeItem('vio_session')
-    window.location.href = '/login'
-    throw new Error('Unauthorized')
+  const token = getToken()
+  const h = { 'Content-Type': 'application/json' }
+  if (token) h['Authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: { ...h, ...(options.headers || {}) },
+  })
+
+  // Auth failed — clear session and redirect to login
+  if (res.status === 401 || res.status === 403) {
+    // Don't redirect if we're already on the login page
+    if (!window.location.pathname.includes('/login')) {
+      localStorage.removeItem('vio_token')
+      localStorage.removeItem('vio_session')
+      window.location.href = '/login'
+    }
+    const err = await res.json().catch(() => ({ detail: 'Not authenticated' }))
+    throw new Error(err.detail || 'Not authenticated')
   }
+
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail || 'Request failed')
   return data
@@ -29,10 +33,15 @@ async function request(path, options = {}) {
 
 // Auth
 export async function apiLogin(company, password) {
-  return request('/api/auth/login', {
+  // Login doesn't need auth token, call directly
+  const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ company, password }),
   })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || 'Login failed')
+  return data
 }
 
 export async function apiChangePassword(currentPassword, newPassword) {
@@ -65,20 +74,28 @@ export async function apiUpdateInstallation(id, data) {
   })
 }
 
-// Media upload
+export async function apiDeleteInstallation(id) {
+  return request(`/api/installations/${id}`, { method: 'DELETE' })
+}
+
+// Media
 export async function apiUploadMedia(installationId, mediaType, file) {
+  const token = getToken()
   const formData = new FormData()
   formData.append('file', file)
   formData.append('installation_id', installationId)
   formData.append('media_type', mediaType)
 
+  const h = {}
+  if (token) h['Authorization'] = `Bearer ${token}`
+
   const res = await fetch(`${BASE}/api/media/upload`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: h,
     body: formData,
   })
   if (!res.ok) {
-    const err = await res.json()
+    const err = await res.json().catch(() => ({ detail: 'Upload failed' }))
     throw new Error(err.detail || 'Upload failed')
   }
   return res.json()
@@ -90,8 +107,4 @@ export async function apiListMedia(installationId) {
 
 export async function apiDeleteMedia(mediaId) {
   return request(`/api/media/${mediaId}`, { method: 'DELETE' })
-}
-
-export async function apiDeleteInstallation(id) {
-  return request(`/api/installations/${id}`, { method: 'DELETE' })
 }
