@@ -91,3 +91,7 @@ export async function apiListMedia(installationId) {
 export async function apiDeleteMedia(mediaId) {
   return request(`/api/media/${mediaId}`, { method: 'DELETE' })
 }
+
+export async function apiDeleteInstallation(id) {
+  return request(`/api/installations/${id}`, { method: 'DELETE' })
+}

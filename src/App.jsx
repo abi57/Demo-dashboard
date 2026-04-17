@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { ThemeProvider }   from './context/ThemeContext'
 import { AuthProvider }    from './context/AuthContext'
 import { AppProvider }     from './context/AppContext'
@@ -17,6 +18,12 @@ function Guard({ children }) {
   return <ProtectedRoute>{children}</ProtectedRoute>
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -25,6 +32,7 @@ export default function App() {
           <ToastProvider>
             <NotificationProvider>
             <BrowserRouter>
+              <ScrollToTop />
               <Routes>
                 <Route path="/login"           element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />

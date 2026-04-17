@@ -141,3 +141,21 @@ async def update_installation(
 
     await db.commit()
     return await get_installation(inst_id, company, db)
+
+
+@router.delete("/{inst_id}")
+async def delete_installation(
+    inst_id: str,
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Installation)
+        .where(Installation.id == inst_id, Installation.company_id == company.id)
+    )
+    inst = result.scalar_one_or_none()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Installation not found")
+    await db.delete(inst)
+    await db.commit()
+    return {"message": "Deleted"}

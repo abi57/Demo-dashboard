@@ -34,10 +34,8 @@ export default function Header({ title, onMenuToggle }) {
         <Search size={15} className="header-search-icon" />
         <input
           value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search records, devices…"
+          placeholder="Search records"
           className="header-search-input"
-          onFocus={e => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.borderColor = 'rgba(255,255,255,0.35)' }}
-          onBlur={e => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.borderColor = 'rgba(255,255,255,0.2)' }}
         />
       </form>
 
@@ -59,18 +57,23 @@ export default function Header({ title, onMenuToggle }) {
           </button>
           {bellOpen && (
             <>
-              <div onClick={() => setBellOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
-              <div style={{
+              <div onClick={() => setBellOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+              <div className="notif-dropdown" style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
                 background: 'var(--vio-card-bg)', border: '1px solid var(--vio-card-border)',
-                borderRadius: 14, width: 340, maxHeight: 400, overflow: 'hidden',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.15)', zIndex: 100,
+                borderRadius: 14, width: 340, maxWidth: 'calc(100vw - 24px)', maxHeight: 400, overflow: 'hidden',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)', zIndex: 1000,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--vio-card-border)' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-primary)' }}>Notifications</span>
-                  {items.length > 0 && (
-                    <button onClick={clearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--vio-text-muted)', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear all</button>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {items.length > 0 && (
+                      <button onClick={clearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--vio-text-muted)', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear all</button>
+                    )}
+                    <button onClick={() => setBellOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-text-muted)', display: 'flex', padding: 2 }}>
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div style={{ overflowY: 'auto', maxHeight: 340 }}>
                   {items.length === 0 ? (
@@ -111,8 +114,8 @@ export default function Header({ title, onMenuToggle }) {
             </button>
             {menuOpen && (
               <>
-                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--vio-card-bg)', border: '0.5px solid var(--vio-card-border)', borderRadius: 12, padding: 6, minWidth: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100 }}>
+                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--vio-card-bg)', border: '0.5px solid var(--vio-card-border)', borderRadius: 12, padding: 6, minWidth: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 1000 }}>
                   <button onClick={() => { setMenuOpen(false); navigate('/settings') }} style={menuItemStyle}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--vio-page-bg)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                     <Settings size={16} /> Settings

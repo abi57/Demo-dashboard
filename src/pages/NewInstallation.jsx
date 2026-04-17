@@ -10,22 +10,33 @@ import { useNotifications } from '../context/NotificationContext'
 const EMPTY_CLIMB = { upStart: '', upFinish: '', downStart: '', downFinish: '' }
 
 function fmtTime(iso) {
-  if (!iso) return '—'
+  if (!iso) return ''
   const d = new Date(iso)
   return d.toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
 }
 
-function toTimeInput(iso) {
-  if (!iso) return ''
+function timeParts(iso) {
+  if (!iso) return { hh: '', mm: '', ss: '', period: 'AM' }
   const d = new Date(iso)
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`
+  let h = d.getHours()
+  const period = h >= 12 ? 'PM' : 'AM'
+  if (h === 0) h = 12
+  else if (h > 12) h -= 12
+  return {
+    hh: String(h).padStart(2, '0'),
+    mm: String(d.getMinutes()).padStart(2, '0'),
+    ss: String(d.getSeconds()).padStart(2, '0'),
+    period,
+  }
 }
 
-function fromTimeInput(val, existingIso) {
-  if (!val) return ''
+function partsToIso(parts, existingIso) {
+  if (!parts.hh || !parts.mm) return existingIso || ''
+  let h = parseInt(parts.hh, 10)
+  if (parts.period === 'PM' && h < 12) h += 12
+  if (parts.period === 'AM' && h === 12) h = 0
   const base = existingIso ? new Date(existingIso) : new Date()
-  const parts = val.split(':').map(Number)
-  base.setHours(parts[0] || 0, parts[1] || 0, parts[2] || 0, 0)
+  base.setHours(h, parseInt(parts.mm, 10), parseInt(parts.ss || '0', 10), 0)
   return base.toISOString()
 }
 
@@ -61,8 +72,8 @@ export default function NewInstallation() {
   const [form, setForm] = useState({
     installerName: '', company: user?.company ?? '', dateInstalled: '',
     siteOwner: '', towerId: '', sensorSerials: '',
-    heightAGL: '', accelOrientation: '', windOrientation: '', windNA: true,
-    structuralElement: '', batteryVoltage: '', dcOutput: '',
+    heightAGL: '', accelOrientation: '', windOrientation: '', windNA: true, windHeightAGL: '',
+    structuralElement: '', batteryVoltage: '', dcOutput: '', powerSource: '',
     secureFixing: null, dataFlow: null,
   })
   const [climbs, setClimbs] = useState([{ ...EMPTY_CLIMB }])
@@ -78,18 +89,23 @@ export default function NewInstallation() {
   const installCanvasRef = useRef()
   const serialFileRef = useRef()
   const installFileRef = useRef()
-  const [videos, setVideos] = useState([])
+  const [videosPos1, setVideosPos1] = useState([])
+  const [videosPos2, setVideosPos2] = useState([])
   const [videoCamOpen, setVideoCamOpen] = useState(false)
   const [videoCamStream, setVideoCamStream] = useState(null)
   const [videoRecorder, setVideoRecorder] = useState(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [activeVideoTarget, setActiveVideoTarget] = useState(null)
   const videoCamRef = useRef()
-  const videoFileRef = useRef()
+  const videoFileRef1 = useRef()
+  const videoFileRef2 = useRef()
+  const videoCaptureRef1 = useRef()
+  const videoCaptureRef2 = useRef()
   const videoChunksRef = useRef([])
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
-  // Mobile detection — use native camera on touch devices
+  // Mobile detection
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
   // Native capture refs (for mobile)
@@ -173,11 +189,12 @@ export default function NewInstallation() {
   }
 
   // Video camera functions
-  async function openVideoCam() {
+  async function openVideoCam(targetSetter) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true })
       setVideoCamStream(stream)
       setVideoCamOpen(true)
+      setActiveVideoTarget(() => targetSetter)
       setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
     } catch { alert('Unable to access camera/microphone.') }
   }
@@ -190,7 +207,7 @@ export default function NewInstallation() {
     recorder.onstop = () => {
       const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType })
       const url = URL.createObjectURL(blob)
-      setVideos(v => [...v, { url, name: `tower-video-${v.length + 1}.webm`, blob }])
+      if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.webm`, blob }])
     }
     recorder.start()
     setVideoRecorder(recorder)
@@ -212,12 +229,13 @@ export default function NewInstallation() {
     setVideoCamOpen(false)
     setIsRecording(false)
     setVideoRecorder(null)
+    setActiveVideoTarget(null)
   }
 
-  function handleVideoFiles(files) {
+  function handleVideoFiles(files, setter) {
     Array.from(files).forEach(file => {
       const url = URL.createObjectURL(file)
-      setVideos(v => [...v, { url, name: file.name, blob: file }])
+      setter(v => [...v, { url, name: file.name, blob: file }])
     })
   }
 
@@ -236,12 +254,17 @@ export default function NewInstallation() {
     if (!form.accelOrientation && form.accelOrientation !== '0') e.accelOrientation = 'Accelerometer orientation is required'
     else { const v = parseInt(form.accelOrientation, 10); if (isNaN(v) || v < 0 || v > 359) e.accelOrientation = 'Must be between 0 and 359' }
     if (!form.windNA) {
+      if (!form.windHeightAGL) e.windHeightAGL = 'Wind sensor install height is required'
+      else if (isNaN(parseFloat(form.windHeightAGL)) || parseFloat(form.windHeightAGL) <= 0) e.windHeightAGL = 'Must be a positive number'
       if (!form.windOrientation && form.windOrientation !== '0') e.windOrientation = 'Wind sensor orientation is required'
       else { const v = parseInt(form.windOrientation, 10); if (isNaN(v) || v < 0 || v > 359) e.windOrientation = 'Must be between 0 and 359' }
     }
     if (!form.structuralElement.trim()) e.structuralElement = 'Structural element is required'
     if (form.secureFixing === null) e.secureFixing = 'Please confirm secure fixing'
     if (form.dataFlow === null)     e.dataFlow = 'Please confirm data flow'
+    if (!form.powerSource) e.powerSource = 'Device power source is required'
+    if (videosPos1.length < 1) e.videosPos1 = 'Tower Video Position 1 is required'
+    if (videosPos2.length < 1) e.videosPos2 = 'Tower Video Position 2 is required'
     return e
   }
 
@@ -263,8 +286,10 @@ export default function NewInstallation() {
         heightAGL: parseFloat(form.heightAGL),
         accelOrientation: form.accelOrientation ? parseFloat(form.accelOrientation) : null,
         windOrientation: form.windNA ? null : (form.windOrientation ? parseFloat(form.windOrientation) : null),
+        windHeightAGL: form.windNA ? null : (form.windHeightAGL ? parseFloat(form.windHeightAGL) : null),
         structuralElement: form.structuralElement,
         batteryVoltage: form.batteryVoltage || null, dcOutput: form.dcOutput || null,
+        powerSource: form.powerSource || null,
         secureFixing: form.secureFixing, dataFlow: form.dataFlow,
         climbs: climbs.map(c => ({
           upStart: c.upStart ? fmtTime(c.upStart) : '',
@@ -288,16 +313,36 @@ export default function NewInstallation() {
           await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: 'image/jpeg' }))
         }
       }
-      for (const v of videos) {
+      for (const v of videosPos1) {
         if (v.blob) {
-          await apiUploadMedia(id, 'video', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
+          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
+        }
+      }
+      for (const v of videosPos2) {
+        if (v.blob) {
+          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
         }
       }
 
       setSubmitting(false)
       push('Installation record submitted successfully', 'success')
       notify(`Installation ${id} submitted successfully`, 'success')
-      navigate(`/install-records/${id}`)
+
+      // Reset form for next installation
+      setForm({
+        installerName: '', company: user?.company ?? '', dateInstalled: '',
+        siteOwner: '', towerId: '', sensorSerials: '',
+        heightAGL: '', accelOrientation: '', windOrientation: '', windNA: true, windHeightAGL: '',
+        structuralElement: '', batteryVoltage: '', dcOutput: '', powerSource: '',
+        secureFixing: null, dataFlow: null,
+      })
+      setClimbs([{ ...EMPTY_CLIMB }])
+      setPhotos([])
+      setSerialPhotos([])
+      setVideosPos1([])
+      setVideosPos2([])
+      setErrors({})
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setSubmitting(false)
       notify(err.message || 'Failed to submit installation', 'error')
@@ -319,6 +364,74 @@ export default function NewInstallation() {
 
   const inputCls = k => `vio-input${errors[k] ? ' invalid' : ''}`
 
+  function TimeDisplay({ iso, onChange }) {
+    const [open, setOpen] = useState(false)
+    if (!iso) return <span style={{ color: 'var(--vio-text-muted)', fontSize: 14 }}>—</span>
+    const p = timeParts(iso)
+    const upd = (field, val) => onChange(partsToIso({ ...p, [field]: val }, iso))
+    const cellStyle = (active) => ({
+      padding: '8px 0', cursor: 'pointer', fontSize: 15, fontWeight: active ? 700 : 400,
+      color: active ? '#fff' : 'var(--vio-text-primary)',
+      background: active ? '#2563eb' : 'transparent',
+      borderRadius: 6, margin: '1px 2px', transition: 'background 0.1s',
+    })
+    return (
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', height: 44, padding: '0 14px', borderRadius: 10,
+          border: '1.5px solid var(--vio-card-border)', background: 'var(--vio-card-bg)',
+          fontFamily: 'ui-monospace,monospace', fontSize: 15, color: 'var(--vio-text-primary)',
+        }}>
+          <span>{p.hh}:{p.mm}:{p.ss} {p.period.toLowerCase()}</span>
+          <button type="button" onClick={() => setOpen(o => !o)} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            color: 'var(--vio-text-muted)', display: 'flex', borderRadius: 6,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </button>
+        </div>
+        {open && (
+          <>
+            <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 99,
+              background: 'var(--vio-card-bg)', border: '1px solid var(--vio-card-border)',
+              borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              padding: 6, display: 'flex', gap: 2,
+            }}>
+              <div style={{ flex: 1, maxHeight: 180, overflowY: 'auto', textAlign: 'center' }}>
+                {Array.from({ length: 12 }, (_, n) => n + 1).map(n => {
+                  const v = String(n).padStart(2, '0')
+                  return <div key={n} style={cellStyle(v === p.hh)} onClick={() => upd('hh', v)}>{v}</div>
+                })}
+              </div>
+              <div style={{ flex: 1, maxHeight: 180, overflowY: 'auto', textAlign: 'center' }}>
+                {Array.from({ length: 60 }, (_, n) => n).map(n => {
+                  const v = String(n).padStart(2, '0')
+                  return <div key={n} style={cellStyle(v === p.mm)} onClick={() => upd('mm', v)}>{v}</div>
+                })}
+              </div>
+              <div style={{ flex: 1, maxHeight: 180, overflowY: 'auto', textAlign: 'center' }}>
+                {Array.from({ length: 60 }, (_, n) => n).map(n => {
+                  const v = String(n).padStart(2, '0')
+                  return <div key={n} style={cellStyle(v === p.ss)} onClick={() => upd('ss', v)}>{v}</div>
+                })}
+              </div>
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                {['AM', 'PM'].map(v => (
+                  <div key={v} style={cellStyle(v === p.period)} onClick={() => upd('period', v)}>{v.toLowerCase()}</div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <AppShell title="New Installation">
       <form onSubmit={handleSubmit}>
@@ -332,7 +445,27 @@ export default function NewInstallation() {
               <input className={inputCls('company')} value={form.company} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
             </Field>
             <Field label="Date of Installation" required error={errors.dateInstalled}>
-              <input className={inputCls('dateInstalled')} type="date" value={form.dateInstalled} onChange={e => set('dateInstalled', e.target.value)} />
+              <div style={{ position: 'relative' }}>
+                <input
+                  className={inputCls('dateInstalled')}
+                  type="date"
+                  value={form.dateInstalled}
+                  onChange={e => set('dateInstalled', e.target.value || '')}
+                  onInput={e => set('dateInstalled', e.target.value || '')}
+                  style={{ color: form.dateInstalled ? 'var(--vio-text-primary)' : 'transparent' }}
+                />
+                {!form.dateInstalled && (
+                  <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--vio-text-muted)', pointerEvents: 'none' }}>
+                    dd/mm/yyyy
+                  </span>
+                )}
+                {form.dateInstalled && (
+                  <button type="button" onClick={() => set('dateInstalled', '')}
+                    style={{ position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-text-muted)', display: 'flex', padding: 2 }}>
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             </Field>
           </div>
         </div>
@@ -412,7 +545,7 @@ export default function NewInstallation() {
         <div className="vio-card" style={{ marginBottom: 16 }}>
           <SectionLabel>Installation Setup</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <Field label="Install Height (m above ground level)" required error={errors.heightAGL}>
+            <Field label="Accelerometer Install Height (m above ground level)" required error={errors.heightAGL}>
               <div style={{ position: 'relative' }}>
                 <input className={inputCls('heightAGL')} type="number" step="0.01" min="0" placeholder="29.80" value={form.heightAGL} onChange={e => set('heightAGL', e.target.value)} style={{ paddingRight: 32 }} />
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>m</span>
@@ -424,6 +557,9 @@ export default function NewInstallation() {
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>° from true north</span>
               </div>
               <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Sanity check: value must be between 0 and 359 degrees.</p>
+            </Field>
+            <Field label="Structural Element" required error={errors.structuralElement}>
+              <input className={inputCls('structuralElement')} placeholder="Tower leg, Horizontal, Cable ladder…" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
             </Field>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
@@ -439,6 +575,22 @@ export default function NewInstallation() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div style={{ opacity: form.windNA ? 0.35 : 1, transition: 'opacity 0.2s', pointerEvents: form.windNA ? 'none' : 'auto' }}>
+              <Field label="Wind Sensor Install Height (m above ground level)" required={!form.windNA} error={!form.windNA ? errors.windHeightAGL : undefined}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className={inputCls('windHeightAGL')}
+                    type="number" step="0.01" min="0"
+                    placeholder="e.g. 25.50"
+                    value={form.windNA ? '' : form.windHeightAGL}
+                    onChange={e => set('windHeightAGL', e.target.value)}
+                    disabled={form.windNA}
+                    style={{ paddingRight: 32, background: form.windNA ? 'var(--vio-page-bg)' : undefined, cursor: form.windNA ? 'not-allowed' : undefined }}
+                  />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>m</span>
+                </div>
+              </Field>
             </div>
             <div style={{ opacity: form.windNA ? 0.35 : 1, transition: 'opacity 0.2s', pointerEvents: form.windNA ? 'none' : 'auto' }}>
               <Field label="Wind Sensor Orientation" required={!form.windNA} error={!form.windNA ? errors.windOrientation : undefined}>
@@ -457,15 +609,23 @@ export default function NewInstallation() {
                 <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Direction the wind sensor end point marks to.</p>
               </Field>
             </div>
-            <Field label="Structural Element" required error={errors.structuralElement}>
-              <input className={inputCls('structuralElement')} placeholder="Tower leg, Horizontal, Cable ladder…" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
-            </Field>
           </div>
         </div>
 
         <div className="vio-card" style={{ marginBottom: 16 }}>
           <SectionLabel>Power & Confirmation</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Field label="Device Power Source" required error={errors.powerSource}>
+              <select className={inputCls('powerSource')} value={form.powerSource} onChange={e => set('powerSource', e.target.value)}>
+                <option value="">Choose power supply</option>
+                <option value="Battery Powered">Battery Powered</option>
+                <option value="Solar Powered">Solar Powered</option>
+                <option value="Tower Power (DC)">Tower Power (DC)</option>
+                <option value="External Power Supply">External Power Supply</option>
+                <option value="Other">Other</option>
+              </select>
+              <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Select how the installed device is powered at this tower location.</p>
+            </Field>
             <Field label="Battery Voltage (VDC)">
               <input className="vio-input" placeholder="e.g. 12V, 10 volts, or NA if not applicable" value={form.batteryVoltage} onChange={e => set('batteryVoltage', e.target.value)} />
             </Field>
@@ -519,21 +679,13 @@ export default function NewInstallation() {
                     </button>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span>Start:</span>
-                      {c.upStart ? (
-                        <input type="time" step="1" className="vio-input" value={toTimeInput(c.upStart)}
-                          onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, upStart: fromTimeInput(e.target.value, cl.upStart) } : cl))}
-                          style={{ height: 36, width: 180, fontSize: 13, padding: '0 10px', textAlign: 'center', fontFamily: 'ui-monospace,monospace' }} />
-                      ) : <span style={{ color: 'var(--vio-text-muted)' }}>—</span>}
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ display: 'block', marginBottom: 4 }}>Start:</span>
+                      <TimeDisplay iso={c.upStart} onChange={val => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, upStart: val } : cl))} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span>Stop:</span>
-                      {c.upFinish ? (
-                        <input type="time" step="1" className="vio-input" value={toTimeInput(c.upFinish)}
-                          onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, upFinish: fromTimeInput(e.target.value, cl.upFinish) } : cl))}
-                          style={{ height: 36, width: 180, fontSize: 13, padding: '0 10px', textAlign: 'center', fontFamily: 'ui-monospace,monospace' }} />
-                      ) : <span style={{ color: 'var(--vio-text-muted)' }}>—</span>}
+                    <div style={{ marginBottom: 4 }}>
+                      <span style={{ display: 'block', marginBottom: 4 }}>Stop:</span>
+                      <TimeDisplay iso={c.upFinish} onChange={val => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, upFinish: val } : cl))} />
                     </div>
                     {calcDur(c.upStart, c.upFinish) && (
                       <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--vio-accent)' }}>↑ {calcDur(c.upStart, c.upFinish)} up</div>
@@ -570,21 +722,13 @@ export default function NewInstallation() {
                     </button>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span>Start:</span>
-                      {c.downStart ? (
-                        <input type="time" step="1" className="vio-input" value={toTimeInput(c.downStart)}
-                          onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, downStart: fromTimeInput(e.target.value, cl.downStart) } : cl))}
-                          style={{ height: 36, width: 180, fontSize: 13, padding: '0 10px', textAlign: 'center', fontFamily: 'ui-monospace,monospace' }} />
-                      ) : <span style={{ color: 'var(--vio-text-muted)' }}>—</span>}
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--vio-text-muted)' }}>Start:</span>
+                      <TimeDisplay iso={c.downStart} onChange={val => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, downStart: val } : cl))} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span>Stop:</span>
-                      {c.downFinish ? (
-                        <input type="time" step="1" className="vio-input" value={toTimeInput(c.downFinish)}
-                          onChange={e => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, downFinish: fromTimeInput(e.target.value, cl.downFinish) } : cl))}
-                          style={{ height: 36, width: 180, fontSize: 13, padding: '0 10px', textAlign: 'center', fontFamily: 'ui-monospace,monospace' }} />
-                      ) : <span style={{ color: 'var(--vio-text-muted)' }}>—</span>}
+                    <div style={{ marginBottom: 4 }}>
+                      <span style={{ display: 'block', marginBottom: 4, fontSize: 13, color: 'var(--vio-text-muted)' }}>Stop:</span>
+                      <TimeDisplay iso={c.downFinish} onChange={val => setClimbs(p => p.map((cl, j) => j === i ? { ...cl, downFinish: val } : cl))} />
                     </div>
                     {calcDur(c.downStart, c.downFinish) && (
                       <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: '#f59e0b' }}>↓ {calcDur(c.downStart, c.downFinish)} down</div>
@@ -661,14 +805,16 @@ export default function NewInstallation() {
           )}
         </div>
 
-        {/* Tower Video */}
-        <div className="vio-card" style={{ marginBottom: 24 }}>
-          <SectionLabel>Tower Video</SectionLabel>
-          <p style={{ fontSize: 12, color: 'var(--vio-text-muted)', marginBottom: 14 }}>Record or upload a video of the tower installation. MP4, MOV, WEBM accepted.</p>
+        {/* Tower Video – Position 1 */}
+        <div className="vio-card" style={{ marginBottom: 16 }}>
+          <SectionLabel>Tower Video – Position 1</SectionLabel>
+          <p style={{ fontSize: 13, color: 'var(--vio-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+            Move to a location approximately the same distance from the tower base as the height of the tower.
+            Record a 30-second video, zoomed in so the top of the tower is clearly visible against the sky.
+          </p>
 
-          {/* Video camera viewfinder */}
-          {videoCamOpen && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', maxWidth: 480 }}>
+          {videoCamOpen && activeVideoTarget === setVideosPos1 && (
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
               <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
               <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center' }}>
                 {!isRecording ? (
@@ -680,59 +826,107 @@ export default function NewInstallation() {
                     <Square size={12} /> Stop Recording
                   </button>
                 )}
-                {!isRecording && (
-                  <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>
-                )}
-                {isRecording && (
-                  <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', animation: 'spin 1s linear infinite' }} />
-                    Recording…
-                  </span>
-                )}
+                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
               </div>
             </div>
           )}
 
-          {/* Buttons */}
-          {!videoCamOpen && (
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videos.length > 0 ? 20 : 0 }}>
-              <button type="button" onClick={() => isMobile ? videoCaptureRef.current.click() : openVideoCam()} className="vio-btn vio-btn-secondary"
+          {!(videoCamOpen && activeVideoTarget === setVideosPos1) && (
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos1.length > 0 ? 16 : 0 }}>
+              <button type="button" onClick={() => isMobile ? videoCaptureRef1.current.click() : openVideoCam(setVideosPos1)} className="vio-btn vio-btn-secondary"
                 style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Video size={28} />
-                Record Video
+                <Video size={28} /> Record Video
               </button>
-              <button type="button" onClick={() => videoFileRef.current.click()} className="vio-btn vio-btn-ghost"
+              <button type="button" onClick={() => videoFileRef1.current.click()} className="vio-btn vio-btn-ghost"
                 style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Upload size={28} />
-                Upload Video
+                <Upload size={28} /> Upload Video
               </button>
-              <input ref={videoFileRef} type="file" multiple accept="video/*" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files); e.target.value = '' }} />
-              <input ref={videoCaptureRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files); e.target.value = '' }} />
+              <input ref={videoFileRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
+              <input ref={videoCaptureRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" capture="environment" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
             </div>
           )}
 
-          {/* Video list */}
-          {videos.length > 0 && (
-            <>
-              <p style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginBottom: 10 }}>{videos.length} video{videos.length !== 1 ? 's' : ''}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {videos.map((v, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: '1px solid var(--vio-card-border)', background: 'var(--vio-page-bg)' }}>
-                    <video src={v.url} controls style={{ width: 160, height: 90, borderRadius: 8, objectFit: 'cover', background: '#000' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
-                    </div>
-                    <button type="button" onClick={() => setVideos(vids => vids.filter((_, j) => j !== i))}
-                      style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(220,38,38,0.08)', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <X size={14} />
-                    </button>
+          {videosPos1.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {videosPos1.map((v, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: '1px solid var(--vio-card-border)', background: 'var(--vio-page-bg)' }}>
+                  <video src={v.url} controls style={{ width: 160, height: 90, borderRadius: 8, objectFit: 'cover', background: '#000' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
                   </div>
-                ))}
-              </div>
-            </>
+                  <button type="button" onClick={() => setVideosPos1(vids => vids.filter((_, j) => j !== i))}
+                    style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(220,38,38,0.08)', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
+          {errors.videosPos1 && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{errors.videosPos1}</p>}
+        </div>
+
+        {/* Tower Video – Position 2 */}
+        <div className="vio-card" style={{ marginBottom: 24 }}>
+          <SectionLabel>Tower Video – Position 2 (90° Angle)</SectionLabel>
+          <p style={{ fontSize: 13, color: 'var(--vio-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+            Move to a position approximately 90° around the tower from your previous location.
+            Record a similar 30-second video, ensuring the top of the tower is clearly visible against the sky.
+          </p>
+
+          {videoCamOpen && activeVideoTarget === setVideosPos2 && (
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center' }}>
+                {!isRecording ? (
+                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
+                  </button>
+                ) : (
+                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
+                    <Square size={12} /> Stop Recording
+                  </button>
+                )}
+                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
+              </div>
+            </div>
+          )}
+
+          {!(videoCamOpen && activeVideoTarget === setVideosPos2) && (
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos2.length > 0 ? 16 : 0 }}>
+              <button type="button" onClick={() => isMobile ? videoCaptureRef2.current.click() : openVideoCam(setVideosPos2)} className="vio-btn vio-btn-secondary"
+                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+                <Video size={28} /> Record Video
+              </button>
+              <button type="button" onClick={() => videoFileRef2.current.click()} className="vio-btn vio-btn-ghost"
+                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+                <Upload size={28} /> Upload Video
+              </button>
+              <input ref={videoFileRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
+              <input ref={videoCaptureRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" capture="environment" style={{ display: 'none' }}
+                onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
+            </div>
+          )}
+
+          {videosPos2.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {videosPos2.map((v, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: '1px solid var(--vio-card-border)', background: 'var(--vio-page-bg)' }}>
+                  <video src={v.url} controls style={{ width: 160, height: 90, borderRadius: 8, objectFit: 'cover', background: '#000' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
+                  </div>
+                  <button type="button" onClick={() => setVideosPos2(vids => vids.filter((_, j) => j !== i))}
+                    style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(220,38,38,0.08)', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {errors.videosPos2 && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{errors.videosPos2}</p>}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
