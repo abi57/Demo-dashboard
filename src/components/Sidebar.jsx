@@ -20,7 +20,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
         padding: '0 16px', flexShrink: 0, borderBottom: '1px solid var(--vio-sidebar-border)',
         position: 'relative',
       }}>
-        <span style={{ fontSize: 22, fontWeight: 700, color: '#e84393', letterSpacing: 1 }}>VIOTEL</span>
+        <span style={{ fontSize: 24, fontWeight: 700, color: '#e84393', letterSpacing: 1 }}>VIOTEL</span>
         {mobileOpen && (
           <button onClick={onClose} style={{
             position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
@@ -66,7 +66,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
               fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
             }}>{user.company?.[0]?.toUpperCase()}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.company}
               </div>
             </div>

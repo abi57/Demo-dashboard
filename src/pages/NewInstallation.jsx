@@ -47,13 +47,13 @@ function calcDur(a, b) {
 }
 
 function SectionLabel({ children }) {
-  return <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--vio-accent)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
+  return <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--vio-accent)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
 }
 
 function Field({ label, required, error, children, half }) {
   return (
     <div style={half ? {} : {}}>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
+      <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
         {label}{required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
       </label>
       {children}
@@ -489,7 +489,7 @@ export default function NewInstallation() {
 
           {/* Serial Number Photos */}
           <div style={{ marginTop: 20 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
               Serial Number Photo(s)<span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>
             </label>
             <p style={{ fontSize: 12, color: 'var(--vio-text-muted)', marginBottom: 12 }}>Take or upload a clear photo of the device serial label. Min 1, max 5.</p>
@@ -562,7 +562,7 @@ export default function NewInstallation() {
               <input className={inputCls('structuralElement')} placeholder="Tower leg, Horizontal, Cable ladder…" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
             </Field>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
                 Does this installation have a wind sensor?
               </label>
               <div style={{ display: 'flex', gap: 10 }}>

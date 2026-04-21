@@ -6,13 +6,13 @@ import { useApp } from '../context/AppContext'
 import { useToast } from '../context/ToastContext'
 
 function SectionLabel({ children }) {
-  return <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--vio-accent)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
+  return <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--vio-accent)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
 }
 
 function Field({ label, required, error, children }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
+      <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
         {label}{required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
       </label>
       {children}
@@ -263,7 +263,7 @@ export default function InstallDetail() {
               <input className={inputCls('structuralElement')} value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
             </Field>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>Wind sensor?</label>
+              <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>Wind sensor?</label>
               <div style={{ display: 'flex', gap: 10 }}>
                 {[{ label: 'Yes', value: false }, { label: 'No', value: true }].map(opt => (
                   <button key={opt.label} type="button" onClick={() => set('windNA', opt.value)}

@@ -109,7 +109,7 @@ export default function Settings() {
 
       {/* Contact / Report */}
       <Section title="Contact Service / Report an Issue">
-        <p style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginBottom: 16 }}>
+        <p style={{ fontSize: 15, color: 'var(--vio-text-muted)', marginBottom: 16 }}>
           Have a question or found something wrong? Send us a message and we'll get back to you.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 500 }}>
@@ -139,8 +139,8 @@ export default function Settings() {
       <Section title="Appearance">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--vio-text-primary)' }}>Theme</p>
-            <p style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>Currently: {isDark ? 'Dark' : 'Light'}</p>
+            <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--vio-text-primary)' }}>Theme</p>
+            <p style={{ fontSize: 14, color: 'var(--vio-text-muted)' }}>Currently: {isDark ? 'Dark' : 'Light'}</p>
           </div>
           <button className="vio-btn vio-btn-secondary" onClick={toggle}>
             Switch to {isDark ? 'Light' : 'Dark'} mode
@@ -152,8 +152,8 @@ export default function Settings() {
       <Section title="Account">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--vio-text-primary)' }}>{user?.name}</p>
-            <p style={{ fontSize: 13, color: 'var(--vio-text-muted)' }}>{user?.company}</p>
+            <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{user?.name}</p>
+            <p style={{ fontSize: 14, color: 'var(--vio-text-muted)' }}>{user?.company}</p>
           </div>
           <button className="vio-btn vio-btn-danger" style={{ gap: 8 }} onClick={() => { logout(); navigate('/login') }}>
             <LogOut size={16} /> Sign out
@@ -164,6 +164,6 @@ export default function Settings() {
   )
 }
 
-const labelStyle = { display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--vio-text-secondary)', marginBottom: 6 }
-const errStyle = { fontSize: 12, color: '#dc2626', marginTop: 4 }
+const labelStyle = { display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 8 }
+const errStyle = { fontSize: 13, color: '#dc2626', marginTop: 4 }
 const eyeStyle = { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vio-text-muted)', display: 'flex', padding: 0 }

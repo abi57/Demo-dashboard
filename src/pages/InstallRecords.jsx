@@ -31,7 +31,7 @@ export default function InstallRecords() {
         <div style={{ textAlign: 'center', padding: 64, color: 'var(--vio-text-muted)' }}>Loading…</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 64 }}>
-          <p style={{ fontSize: 16, color: 'var(--vio-text-muted)' }}>
+          <p style={{ fontSize: 18, color: 'var(--vio-text-muted)' }}>
             {search ? 'No installations match your search.' : 'No completed installations yet.'}
           </p>
         </div>
@@ -42,7 +42,7 @@ export default function InstallRecords() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{r.tower_id}</span>
+                    <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--vio-text-primary)' }}>{r.tower_id}</span>
                     <StatusBadge status={r.status} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
@@ -68,7 +68,7 @@ export default function InstallRecords() {
         </div>
       )}
 
-      <p style={{ fontSize: 13, color: 'var(--vio-text-muted)', marginTop: 20 }}>
+      <p style={{ fontSize: 15, color: 'var(--vio-text-muted)', marginTop: 20 }}>
         {filtered.length} installation{filtered.length !== 1 ? 's' : ''}
       </p>
     </AppShell>
@@ -78,8 +78,8 @@ export default function InstallRecords() {
 function Detail({ label, value }) {
   return (
     <div>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--vio-text-muted)' }}>{label}</span>
-      <p style={{ fontSize: 13, color: 'var(--vio-text-primary)', marginTop: 2 }}>{value || '—'}</p>
+      <span style={{ fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--vio-text-muted)' }}>{label}</span>
+      <p style={{ fontSize: 15, color: 'var(--vio-text-primary)', marginTop: 2 }}>{value || '—'}</p>
     </div>
   )
 }
