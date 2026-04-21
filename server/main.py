@@ -21,10 +21,8 @@ SEED_COMPANIES = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    # Seed companies if empty
     async with SessionLocal() as db:
         result = await db.execute(select(Company).limit(1))
         if not result.scalar_one_or_none():
@@ -45,7 +43,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve uploaded files locally
 uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")

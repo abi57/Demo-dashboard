@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE = import.meta.env.VITE_API_URL || ''
 
 function getToken() {
   return localStorage.getItem('vio_token')
@@ -14,9 +14,7 @@ async function request(path, options = {}) {
     headers: { ...h, ...(options.headers || {}) },
   })
 
-  // Auth failed — clear session and redirect to login
   if (res.status === 401 || res.status === 403) {
-    // Don't redirect if we're already on the login page
     if (!window.location.pathname.includes('/login')) {
       localStorage.removeItem('vio_token')
       localStorage.removeItem('vio_session')
@@ -31,9 +29,8 @@ async function request(path, options = {}) {
   return data
 }
 
-// Auth
+// Auth — login bypasses token check
 export async function apiLogin(company, password) {
-  // Login doesn't need auth token, call directly
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
