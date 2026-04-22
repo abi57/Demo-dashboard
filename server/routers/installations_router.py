@@ -6,6 +6,7 @@ from database import get_db
 from models import Company, Installation, ClimbLog, Media
 from schemas import InstallationCreate, InstallationUpdate, InstallationOut, ClimbLogOut, MediaOut
 from dependencies import get_current_company
+from storage import generate_presigned_url
 
 router = APIRouter(prefix="/api/installations", tags=["installations"])
 
@@ -35,7 +36,8 @@ def _format(inst: Installation, company_name: str) -> InstallationOut:
                 for c in inst.climb_logs],
         media=[MediaOut(id=m.id, media_type=m.media_type, filename=m.filename,
                file_type=m.file_type or "", file_size=m.file_size or 0,
-               url=m.public_url or m.storage_key or "", uploaded_at=m.uploaded_at)
+               url=generate_presigned_url(m.storage_key) or m.public_url or m.storage_key or "",
+               uploaded_at=m.uploaded_at)
                for m in inst.media],
     )
 

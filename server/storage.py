@@ -90,3 +90,21 @@ async def delete_file(storage_key: str):
         path = os.path.join(UPLOAD_DIR, storage_key)
         if os.path.exists(path):
             os.remove(path)
+
+
+def generate_presigned_url(storage_key: str, expires_in: int = 3600) -> str:
+    """Generate a presigned GET URL for a private S3 object. Default 1 hour expiry."""
+    settings = get_settings()
+    if not settings.s3_configured:
+        return f"/uploads/{storage_key}"
+
+    client = _get_s3_client()
+    try:
+        url = client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.s3_bucket, "Key": storage_key},
+            ExpiresIn=expires_in,
+        )
+        return url
+    except ClientError:
+        return ""
