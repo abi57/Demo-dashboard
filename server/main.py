@@ -8,6 +8,7 @@ from sqlalchemy import select, text
 from database import engine, Base, SessionLocal
 from models import Company
 from auth import hash_password
+from config import get_settings
 from routers.auth_router import router as auth_router
 from routers.installations_router import router as installations_router
 from routers.media_router import router as media_router
@@ -60,4 +61,11 @@ app.include_router(media_router)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "s3_configured": settings.s3_configured,
+        "s3_endpoint": settings.s3_endpoint[:30] + "..." if settings.s3_endpoint else "",
+        "s3_bucket": settings.s3_bucket,
+        "use_local": settings.USE_LOCAL_STORAGE,
+    }
