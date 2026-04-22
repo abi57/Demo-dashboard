@@ -44,11 +44,8 @@ class InstallationCreate(BaseModel):
     sensor_serials: str
     height_agl: float
     accel_orientation: Optional[float] = None
-    accel_facing_direction: Optional[int] = None
     wind_orientation: Optional[float] = None
-    wind_height_agl: Optional[float] = None
     structural_element: str
-    power_source: Optional[str] = None
     battery_voltage: Optional[str] = None
     dc_output: Optional[str] = None
     secure_fixing: bool
@@ -70,11 +67,8 @@ class InstallationOut(BaseModel):
     sensor_serials: str
     height_agl: float
     accel_orientation: Optional[float]
-    accel_facing_direction: Optional[int]
     wind_orientation: Optional[float]
-    wind_height_agl: Optional[float]
     structural_element: str
-    power_source: Optional[str]
     battery_voltage: Optional[str]
     dc_output: Optional[str]
     secure_fixing: bool
