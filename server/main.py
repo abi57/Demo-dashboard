@@ -30,6 +30,10 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE media ADD COLUMN IF NOT EXISTS public_url VARCHAR(500)"))
         # Backfill public_url from storage_key for existing rows
         await conn.execute(text("UPDATE media SET public_url = storage_key WHERE public_url IS NULL"))
+        # New installation fields
+        await conn.execute(text("ALTER TABLE installations ADD COLUMN IF NOT EXISTS accel_facing_direction INTEGER"))
+        await conn.execute(text("ALTER TABLE installations ADD COLUMN IF NOT EXISTS wind_height_agl DOUBLE PRECISION"))
+        await conn.execute(text("ALTER TABLE installations ADD COLUMN IF NOT EXISTS power_source VARCHAR(100)"))
     async with SessionLocal() as db:
         result = await db.execute(select(Company).limit(1))
         if not result.scalar_one_or_none():

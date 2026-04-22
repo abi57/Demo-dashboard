@@ -176,27 +176,111 @@ export default function InstallDetail() {
   }
 
   function MediaSection({ title, items, setItems, fileRef, captureRef, accept, isVideo }) {
+    const [camOpen, setCamOpen] = useState(false)
+    const [camStream, setCamStream] = useState(null)
+    const [recorder, setRecorder] = useState(null)
+    const [recording, setRecording] = useState(false)
+    const vidRef = useRef()
+    const canRef = useRef()
+    const chunksRef = useRef([])
+
+    async function openWebcam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(
+          isVideo ? { video: { facingMode: 'environment' }, audio: true } : { video: { facingMode: 'environment' } }
+        )
+        setCamStream(stream)
+        setCamOpen(true)
+        setTimeout(() => { if (vidRef.current) vidRef.current.srcObject = stream }, 50)
+      } catch { alert('Unable to access camera.') }
+    }
+
+    function capturePhoto() {
+      const v = vidRef.current, c = canRef.current
+      if (!v || !c) return
+      c.width = v.videoWidth; c.height = v.videoHeight
+      c.getContext('2d').drawImage(v, 0, 0)
+      const url = c.toDataURL('image/jpeg', 0.85)
+      setItems(p => [...p, { url, name: `capture-${Date.now()}.jpg` }])
+      closeCam()
+    }
+
+    function startRec() {
+      if (!camStream) return
+      chunksRef.current = []
+      const rec = new MediaRecorder(camStream)
+      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType })
+        setItems(v => [...v, { url: URL.createObjectURL(blob), name: `video-${Date.now()}.webm`, blob }])
+      }
+      rec.start()
+      setRecorder(rec)
+      setRecording(true)
+    }
+
+    function stopRec() {
+      if (recorder && recorder.state !== 'inactive') recorder.stop()
+      setRecording(false)
+      setRecorder(null)
+      closeCam()
+    }
+
+    function closeCam() {
+      if (camStream) camStream.getTracks().forEach(t => t.stop())
+      setCamStream(null)
+      setCamOpen(false)
+      setRecording(false)
+      setRecorder(null)
+    }
+
     return (
       <div className="vio-card" style={{ marginBottom: 16 }}>
         <SectionLabel>{title}</SectionLabel>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: items.length > 0 ? 14 : 0 }}>
-          {captureRef && (
-            <button type="button" onClick={() => captureRef.current.click()} className="vio-btn vio-btn-secondary"
+
+        {/* Webcam viewfinder (desktop) */}
+        {camOpen && (
+          <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+            <video ref={vidRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 260, objectFit: 'cover' }} />
+            <canvas ref={canRef} style={{ display: 'none' }} />
+            <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
+              {isVideo ? (
+                !recording ? (
+                  <button type="button" onClick={startRec} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
+                  </button>
+                ) : (
+                  <button type="button" onClick={stopRec} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>Stop Recording</button>
+                )
+              ) : (
+                <button type="button" onClick={capturePhoto} className="vio-btn vio-btn-primary">Capture</button>
+              )}
+              {!recording && <button type="button" onClick={closeCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
+            </div>
+          </div>
+        )}
+
+        {/* Buttons */}
+        {!camOpen && (
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: items.length > 0 ? 14 : 0 }}>
+            <button type="button" onClick={() => isMobile && captureRef ? captureRef.current.click() : openWebcam()} className="vio-btn vio-btn-secondary"
               style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
               <Camera size={22} /> {isVideo ? 'Record Video' : 'Take Photo'}
             </button>
-          )}
-          <button type="button" onClick={() => fileRef.current.click()} className="vio-btn vio-btn-ghost"
-            style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
-            <Upload size={22} /> {isVideo ? 'Upload Video' : 'Upload Photo'}
-          </button>
-          <input ref={fileRef} type="file" multiple accept={accept} style={{ display: 'none' }}
-            onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
-          {captureRef && (
-            <input ref={captureRef} type="file" accept={isVideo ? 'video/*' : 'image/*'} capture="environment" style={{ display: 'none' }}
+            <button type="button" onClick={() => fileRef.current.click()} className="vio-btn vio-btn-ghost"
+              style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
+              <Upload size={22} /> {isVideo ? 'Upload Video' : 'Upload Photo'}
+            </button>
+            <input ref={fileRef} type="file" multiple accept={accept} style={{ display: 'none' }}
               onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
-          )}
-        </div>
+            {captureRef && (
+              <input ref={captureRef} type="file" accept={isVideo ? 'video/*' : 'image/*'} capture="environment" style={{ display: 'none' }}
+                onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
+            )}
+          </div>
+        )}
+
+        {/* Media list */}
         {items.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {items.map((p, i) => (

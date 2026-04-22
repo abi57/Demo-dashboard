@@ -36,9 +36,12 @@ class Installation(Base):
 
     height_agl: Mapped[float] = mapped_column(Float, nullable=False)
     accel_orientation: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    accel_facing_direction: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     wind_orientation: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    wind_height_agl: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     structural_element: Mapped[str] = mapped_column(String(200), nullable=False)
 
+    power_source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     battery_voltage: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     dc_output: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     secure_fixing: Mapped[bool] = mapped_column(Boolean, nullable=False)
