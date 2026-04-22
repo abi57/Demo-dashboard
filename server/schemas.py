@@ -32,6 +32,8 @@ class MediaOut(BaseModel):
     id: int
     media_type: str
     filename: str
+    file_type: str = ""
+    file_size: int = 0
     url: str
     uploaded_at: datetime
 

@@ -34,7 +34,8 @@ def _format(inst: Installation, company_name: str) -> InstallationOut:
                 up_finish=c.up_finish, down_start=c.down_start, down_finish=c.down_finish)
                 for c in inst.climb_logs],
         media=[MediaOut(id=m.id, media_type=m.media_type, filename=m.filename,
-               url=m.storage_key, uploaded_at=m.uploaded_at)
+               file_type=m.file_type or "", file_size=m.file_size or 0,
+               url=m.public_url or m.storage_key, uploaded_at=m.uploaded_at)
                for m in inst.media],
     )
 
