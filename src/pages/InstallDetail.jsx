@@ -49,17 +49,24 @@ export default function InstallDetail() {
     dataFlow: rec.data_flow,
   } : {})
 
+  const API_BASE = import.meta.env.VITE_API_URL || ''
+  const resolveUrl = (url) => {
+    if (!url) return ''
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url
+    return `${API_BASE}${url}`
+  }
+
   const [serialPhotos, setSerialPhotos] = useState(() =>
-    (rec?.media || []).filter(m => m.media_type === 'serial_photo').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+    (rec?.media || []).filter(m => m.media_type === 'serial_photo').map(m => ({ url: resolveUrl(m.url), name: m.filename, id: m.id }))
   )
   const [photos, setPhotos] = useState(() =>
-    (rec?.media || []).filter(m => m.media_type === 'install_photo').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+    (rec?.media || []).filter(m => m.media_type === 'install_photo').map(m => ({ url: resolveUrl(m.url), name: m.filename, id: m.id }))
   )
   const [videosPos1, setVideosPos1] = useState(() =>
-    (rec?.media || []).filter(m => m.media_type === 'video_position_1').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+    (rec?.media || []).filter(m => m.media_type === 'video_position_1').map(m => ({ url: resolveUrl(m.url), name: m.filename, id: m.id }))
   )
   const [videosPos2, setVideosPos2] = useState(() =>
-    (rec?.media || []).filter(m => m.media_type === 'video_position_2').map(m => ({ url: m.url, name: m.filename, id: m.id }))
+    (rec?.media || []).filter(m => m.media_type === 'video_position_2').map(m => ({ url: resolveUrl(m.url), name: m.filename, id: m.id }))
   )
   const [climbs, setClimbs] = useState(() => {
     if (!rec?.climbs?.length) return [{ upStart: '', upFinish: '', downStart: '', downFinish: '' }]
@@ -71,9 +78,13 @@ export default function InstallDetail() {
   const [deleting, setDeleting] = useState(false)
 
   const serialFileRef = useRef()
+  const serialCaptureRef = useRef()
   const installFileRef = useRef()
+  const installCaptureRef = useRef()
   const videoFileRef1 = useRef()
   const videoFileRef2 = useRef()
+  const videoCaptureRef1 = useRef()
+  const videoCaptureRef2 = useRef()
 
   if (!rec) return (
     <AppShell title="Edit Installation">
@@ -164,17 +175,27 @@ export default function InstallDetail() {
     setShowDeleteConfirm(false)
   }
 
-  function MediaSection({ title, items, setItems, fileRef, accept, isVideo }) {
+  function MediaSection({ title, items, setItems, fileRef, captureRef, accept, isVideo }) {
     return (
       <div className="vio-card" style={{ marginBottom: 16 }}>
         <SectionLabel>{title}</SectionLabel>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: items.length > 0 ? 14 : 0 }}>
-          <button type="button" onClick={() => fileRef.current.click()} className="vio-btn vio-btn-secondary"
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: items.length > 0 ? 14 : 0 }}>
+          {captureRef && (
+            <button type="button" onClick={() => captureRef.current.click()} className="vio-btn vio-btn-secondary"
+              style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
+              <Camera size={22} /> {isVideo ? 'Record Video' : 'Take Photo'}
+            </button>
+          )}
+          <button type="button" onClick={() => fileRef.current.click()} className="vio-btn vio-btn-ghost"
             style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
             <Upload size={22} /> {isVideo ? 'Upload Video' : 'Upload Photo'}
           </button>
           <input ref={fileRef} type="file" multiple accept={accept} style={{ display: 'none' }}
             onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
+          {captureRef && (
+            <input ref={captureRef} type="file" accept={isVideo ? 'video/*' : 'image/*'} capture="environment" style={{ display: 'none' }}
+              onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
+          )}
         </div>
         {items.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -243,7 +264,7 @@ export default function InstallDetail() {
         </div>
 
         {/* Serial Photos */}
-        <MediaSection title="Serial Number Photos" items={serialPhotos} setItems={setSerialPhotos} fileRef={serialFileRef} accept="image/*,.heic" />
+        <MediaSection title="Serial Number Photos" items={serialPhotos} setItems={setSerialPhotos} fileRef={serialFileRef} captureRef={serialCaptureRef} accept="image/*,.heic" />
 
         {/* Installation Setup */}
         <div className="vio-card">
@@ -371,14 +392,14 @@ export default function InstallDetail() {
         </div>
 
         {/* Install Photographs */}
-        <MediaSection title="Install Photographs" items={photos} setItems={setPhotos} fileRef={installFileRef} accept="image/*,.heic" />
+        <MediaSection title="Install Photographs" items={photos} setItems={setPhotos} fileRef={installFileRef} captureRef={installCaptureRef} accept="image/*,.heic" />
 
         {/* Tower Video Position 1 */}
-        <MediaSection title="Tower Video – Position 1" items={videosPos1} setItems={setVideosPos1} fileRef={videoFileRef1}
+        <MediaSection title="Tower Video – Position 1" items={videosPos1} setItems={setVideosPos1} fileRef={videoFileRef1} captureRef={videoCaptureRef1}
           accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" isVideo />
 
         {/* Tower Video Position 2 */}
-        <MediaSection title="Tower Video – Position 2 (90°)" items={videosPos2} setItems={setVideosPos2} fileRef={videoFileRef2}
+        <MediaSection title="Tower Video – Position 2 (90°)" items={videosPos2} setItems={setVideosPos2} fileRef={videoFileRef2} captureRef={videoCaptureRef2}
           accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" isVideo />
 
         {/* Actions */}
