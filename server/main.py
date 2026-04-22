@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from database import engine, Base, SessionLocal
 from models import Company
@@ -23,6 +23,12 @@ SEED_COMPANIES = [
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Add missing columns to existing media table
+        await conn.execute(text("ALTER TABLE media ADD COLUMN IF NOT EXISTS file_type VARCHAR(100)"))
+        await conn.execute(text("ALTER TABLE media ADD COLUMN IF NOT EXISTS file_size INTEGER"))
+        await conn.execute(text("ALTER TABLE media ADD COLUMN IF NOT EXISTS public_url VARCHAR(500)"))
+        # Backfill public_url from storage_key for existing rows
+        await conn.execute(text("UPDATE media SET public_url = storage_key WHERE public_url IS NULL"))
     async with SessionLocal() as db:
         result = await db.execute(select(Company).limit(1))
         if not result.scalar_one_or_none():

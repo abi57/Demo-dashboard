@@ -76,7 +76,7 @@ class Media(Base):
     file_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    public_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    public_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     installation: Mapped["Installation"] = relationship(back_populates="media")
