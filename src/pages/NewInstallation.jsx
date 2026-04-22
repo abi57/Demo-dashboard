@@ -72,7 +72,7 @@ export default function NewInstallation() {
   const [form, setForm] = useState({
     installerName: '', company: user?.company ?? '', dateInstalled: '',
     siteOwner: '', towerId: '', sensorSerials: '',
-    heightAGL: '', accelOrientation: '', windOrientation: '', windNA: true, windHeightAGL: '',
+    heightAGL: '', accelOrientation: '', accelFacingDirection: '', windOrientation: '', windNA: true, windHeightAGL: '',
     structuralElement: '', batteryVoltage: '', dcOutput: '', powerSource: '',
     secureFixing: null, dataFlow: null,
   })
@@ -253,6 +253,7 @@ export default function NewInstallation() {
     else if (isNaN(parseFloat(form.heightAGL)) || parseFloat(form.heightAGL) <= 0) e.heightAGL = 'Must be a positive number'
     if (!form.accelOrientation && form.accelOrientation !== '0') e.accelOrientation = 'Accelerometer orientation is required'
     else { const v = parseInt(form.accelOrientation, 10); if (isNaN(v) || v < 0 || v > 359) e.accelOrientation = 'Must be between 0 and 359' }
+    if (!form.accelFacingDirection) e.accelFacingDirection = 'Please select facing direction'
     if (!form.windNA) {
       if (!form.windHeightAGL) e.windHeightAGL = 'Wind sensor install height is required'
       else if (isNaN(parseFloat(form.windHeightAGL)) || parseFloat(form.windHeightAGL) <= 0) e.windHeightAGL = 'Must be a positive number'
@@ -285,6 +286,7 @@ export default function NewInstallation() {
         sensorSerials: form.sensorSerials.split(',').map(s => s.trim()).filter(Boolean),
         heightAGL: parseFloat(form.heightAGL),
         accelOrientation: form.accelOrientation ? parseFloat(form.accelOrientation) : null,
+        accelFacingDirection: form.accelFacingDirection ? parseInt(form.accelFacingDirection, 10) : null,
         windOrientation: form.windNA ? null : (form.windOrientation ? parseFloat(form.windOrientation) : null),
         windHeightAGL: form.windNA ? null : (form.windHeightAGL ? parseFloat(form.windHeightAGL) : null),
         structuralElement: form.structuralElement,
@@ -332,7 +334,7 @@ export default function NewInstallation() {
       setForm({
         installerName: '', company: user?.company ?? '', dateInstalled: '',
         siteOwner: '', towerId: '', sensorSerials: '',
-        heightAGL: '', accelOrientation: '', windOrientation: '', windNA: true, windHeightAGL: '',
+        heightAGL: '', accelOrientation: '', accelFacingDirection: '', windOrientation: '', windNA: true, windHeightAGL: '',
         structuralElement: '', batteryVoltage: '', dcOutput: '', powerSource: '',
         secureFixing: null, dataFlow: null,
       })
@@ -557,6 +559,23 @@ export default function NewInstallation() {
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>° from true north</span>
               </div>
               <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Sanity check: value must be between 0 and 359 degrees.</p>
+            </Field>
+            <Field label="Accelerometer Facing Direction (Front/Pink Label)" required error={errors.accelFacingDirection}>
+              <div style={{ position: 'relative' }}>
+                <select className={inputCls('accelFacingDirection')} value={form.accelFacingDirection} onChange={e => set('accelFacingDirection', e.target.value)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', paddingRight: 40, cursor: 'pointer' }}>
+                  <option value="">Select direction…</option>
+                  <option value="0">North (0°)</option>
+                  <option value="45">North-East (45°)</option>
+                  <option value="90">East (90°)</option>
+                  <option value="135">South-East (135°)</option>
+                  <option value="180">South (180°)</option>
+                  <option value="225">South-West (225°)</option>
+                  <option value="270">West (270°)</option>
+                  <option value="315">North-West (315°)</option>
+                </select>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Which direction is the pink label (front face of the device) pointing after installation?</p>
             </Field>
             <Field label="Structural Element" required error={errors.structuralElement}>
               <input className={inputCls('structuralElement')} placeholder="Tower leg, Horizontal, Cable ladder…" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />

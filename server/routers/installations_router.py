@@ -23,8 +23,11 @@ def _format(inst: Installation, company_name: str) -> InstallationOut:
         sensor_serials=inst.sensor_serials,
         height_agl=inst.height_agl,
         accel_orientation=inst.accel_orientation,
+        accel_facing_direction=inst.accel_facing_direction,
         wind_orientation=inst.wind_orientation,
+        wind_height_agl=inst.wind_height_agl,
         structural_element=inst.structural_element,
+        power_source=inst.power_source,
         battery_voltage=inst.battery_voltage,
         dc_output=inst.dc_output,
         secure_fixing=inst.secure_fixing,
@@ -85,8 +88,11 @@ async def create_installation(
         sensor_serials=body.sensor_serials,
         height_agl=body.height_agl,
         accel_orientation=body.accel_orientation,
+        accel_facing_direction=body.accel_facing_direction,
         wind_orientation=body.wind_orientation,
+        wind_height_agl=body.wind_height_agl,
         structural_element=body.structural_element,
+        power_source=body.power_source,
         battery_voltage=body.battery_voltage,
         dc_output=body.dc_output,
         secure_fixing=body.secure_fixing,
@@ -124,8 +130,9 @@ async def update_installation(
         raise HTTPException(status_code=404, detail="Installation not found")
 
     for field in ["installer_name", "date_installed", "site_owner", "tower_id",
-                  "sensor_serials", "height_agl", "accel_orientation", "wind_orientation",
-                  "structural_element", "battery_voltage", "dc_output", "secure_fixing", "data_flow"]:
+                  "sensor_serials", "height_agl", "accel_orientation", "accel_facing_direction",
+                  "wind_orientation", "wind_height_agl",
+                  "structural_element", "power_source", "battery_voltage", "dc_output", "secure_fixing", "data_flow"]:
         setattr(inst, field, getattr(body, field))
     inst.status = "confirmed" if body.data_flow else "pending"
 
