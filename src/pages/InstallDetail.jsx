@@ -116,7 +116,7 @@ export default function InstallDetail() {
       {[true, false].map(v => (
         <button key={String(v)} type="button" onClick={() => set(field, v)}
           className={`vio-btn ${form[field] === v ? 'vio-btn-primary' : 'vio-btn-ghost'}`}
-          style={{ height: 42, padding: '0 28px', fontSize: 14, minWidth: 80 }}>
+          style={{ height: 52, padding: '0 36px', fontSize: 17, minWidth: 100 }}>
           {v ? 'Yes' : 'No'}
         </button>
       ))}
@@ -375,7 +375,7 @@ export default function InstallDetail() {
                 {[{ label: 'Yes', value: false }, { label: 'No', value: true }].map(opt => (
                   <button key={opt.label} type="button" onClick={() => set('windNA', opt.value)}
                     className={`vio-btn ${form.windNA === opt.value ? 'vio-btn-primary' : 'vio-btn-ghost'}`}
-                    style={{ height: 42, padding: '0 28px', fontSize: 14, minWidth: 80 }}>{opt.label}</button>
+                    style={{ height: 52, padding: '0 36px', fontSize: 17, minWidth: 100 }}>{opt.label}</button>
                 ))}
               </div>
             </div>
