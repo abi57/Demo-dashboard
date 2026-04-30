@@ -360,28 +360,11 @@ export default function InstallDetail() {
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>m</span>
               </div>
             </Field>
-            <Field label="Accelerometer Orientation" error={errors.accelOrientation}>
+            <Field label="Accelerometer Orientation (Which direction is the pink label (front face of the device) pointing after installation?)" error={errors.accelOrientation}>
               <div style={{ position: 'relative' }}>
                 <input className="vio-input" type="number" min="0" max="359" value={form.accelOrientation} onChange={e => set('accelOrientation', e.target.value)} style={{ paddingRight: 100 }} />
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>° from true north</span>
               </div>
-            </Field>
-            <Field label="Accelerometer Facing Direction (Front/Pink Label)" error={errors.accelFacingDirection}>
-              <div style={{ position: 'relative' }}>
-                <select className="vio-input" value={form.accelFacingDirection} onChange={e => set('accelFacingDirection', e.target.value)}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', paddingRight: 40, cursor: 'pointer' }}>
-                  <option value="">Select direction…</option>
-                  <option value="0">North (0°)</option>
-                  <option value="45">North-East (45°)</option>
-                  <option value="90">East (90°)</option>
-                  <option value="135">South-East (135°)</option>
-                  <option value="180">South (180°)</option>
-                  <option value="225">South-West (225°)</option>
-                  <option value="270">West (270°)</option>
-                  <option value="315">North-West (315°)</option>
-                </select>
-              </div>
-              <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Which direction is the pink label pointing?</p>
             </Field>
             <Field label="Structural Element" required error={errors.structuralElement}>
               <input className={inputCls('structuralElement')} value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
@@ -494,7 +477,7 @@ export default function InstallDetail() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="vio-btn vio-btn-primary" onClick={() => navigate('/install-records')}>Cancel</button>
             <button className="vio-btn vio-btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? 'Save Changes' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -512,7 +495,7 @@ export default function InstallDetail() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="vio-btn vio-btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
               <button className="vio-btn vio-btn-danger" onClick={handleDelete} disabled={deleting} style={{ gap: 6 }}>
-                <Trash2 size={15} /> {deleting ? 'Deleting…' : 'Yes, Delete'}
+                <Trash2 size={15} /> {deleting ? 'Yes, Delete' : 'Yes, Delete'}
               </button>
             </div>
           </div>

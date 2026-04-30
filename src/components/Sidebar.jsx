@@ -20,7 +20,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
         padding: '0 16px', flexShrink: 0, borderBottom: '1px solid var(--vio-sidebar-border)',
         position: 'relative',
       }}>
-        <span style={{ fontSize: 24, fontWeight: 700, color: '#e84393', letterSpacing: 1 }}>VIOTEL</span>
+        <img src="/logo.webp" alt="Viotel" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         {mobileOpen && (
           <button onClick={onClose} style={{
             position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',

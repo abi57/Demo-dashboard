@@ -96,7 +96,7 @@ export default function ForgotPassword() {
                 </div>
 
                 <button type="submit" className="auth-submit" disabled={loading}>
-                  {loading ? 'Sending…' : 'Send reset instructions'}
+                  {loading ? 'Send reset instructions' : 'Send reset instructions'}
                 </button>
               </form>
 

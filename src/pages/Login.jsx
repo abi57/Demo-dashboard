@@ -89,7 +89,7 @@ export default function Login() {
             </div>
 
             <button type="submit" className="auth-submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? 'Sign in' : 'Sign in'}
             </button>
           </form>
 
