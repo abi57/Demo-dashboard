@@ -440,7 +440,7 @@ export default function NewInstallation() {
           <SectionLabel>Installer Details</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Installer Full Name" required error={errors.installerName}>
-              <input className={inputCls('installerName')} placeholder="Wade Hooper" value={form.installerName} onChange={e => set('installerName', e.target.value)} />
+              <input className={inputCls('installerName')} placeholder="Name" value={form.installerName} onChange={e => set('installerName', e.target.value)} />
             </Field>
             <Field label="Installer Company" required error={errors.company}>
               <input className={inputCls('company')} value={form.company} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
