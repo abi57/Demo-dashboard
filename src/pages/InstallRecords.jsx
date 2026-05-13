@@ -139,9 +139,9 @@ export default function InstallRecords() {
 
 function CompactDetail({ label, value }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--vio-text-muted)', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 14, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+      <span style={{ fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--vio-text-muted)', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--vio-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
     </div>
   )
 }
