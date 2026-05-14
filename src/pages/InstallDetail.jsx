@@ -274,7 +274,7 @@ export default function InstallDetail() {
             <input ref={fileRef} type="file" multiple accept={accept} style={{ display: 'none' }}
               onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
             {captureRef && (
-              <input ref={captureRef} type="file" accept={isVideo ? 'video/*' : 'image/*'} capture="environment" style={{ display: 'none' }}
+              <input ref={captureRef} type="file" accept={isVideo ? 'video/*' : 'image/*'} capture={isVideo ? undefined : "environment"} style={{ display: 'none' }}
                 onChange={e => { isVideo ? addVideoFiles(e.target.files, setItems) : addFiles(e.target.files, setItems); e.target.value = '' }} />
             )}
           </div>

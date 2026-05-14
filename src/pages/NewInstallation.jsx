@@ -914,7 +914,7 @@ export default function NewInstallation() {
               </button>
               <input ref={videoFileRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
                 onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
-              <input ref={videoCaptureRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" capture="environment" style={{ display: 'none' }}
+              <input ref={videoCaptureRef1} type="file" accept="video/*" style={{ display: 'none' }}
                 onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
             </div>
           )}
@@ -976,7 +976,7 @@ export default function NewInstallation() {
               </button>
               <input ref={videoFileRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
                 onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
-              <input ref={videoCaptureRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" capture="environment" style={{ display: 'none' }}
+              <input ref={videoCaptureRef2} type="file" accept="video/*" style={{ display: 'none' }}
                 onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
             </div>
           )}
