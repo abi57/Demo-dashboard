@@ -1,6 +1,6 @@
 # Viotel Installation Dashboard
 
-Full-stack web application for managing tower sensor installations. Field engineers submit installation records with photos, videos, and technical data. Operations teams review and confirm them.
+A web app for managing tower sensor installations from start to finish. Field engineers can submit installation details, upload photos and videos, and record key technical information in one place.
 
 ## Tech Stack
 
