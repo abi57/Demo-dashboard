@@ -48,7 +48,7 @@ app = FastAPI(title="Viotel API", version="1.0.0", lifespan=lifespan, redirect_s
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,8 +68,5 @@ async def health():
     settings = get_settings()
     return {
         "status": "ok",
-        "s3_configured": settings.s3_configured,
-        "s3_endpoint": settings.s3_endpoint[:30] + "..." if settings.s3_endpoint else "",
-        "s3_bucket": settings.s3_bucket,
-        "use_local": settings.USE_LOCAL_STORAGE,
+        "storage": "s3" if (settings.s3_configured and not settings.USE_LOCAL_STORAGE) else "local",
     }

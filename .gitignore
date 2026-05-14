@@ -23,9 +23,33 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local env (dev only — .env.production goes to git for Railway)
+# Environment files (all environments)
 .env
+.env.local
+.env.production
+.env.*.local
+
+# Server environment and secrets
 server/.env
+server/.env.local
+server/.env.production
+
+# Uploads and generated files
 server/uploads/
 server/__pycache__/
 server/routers/__pycache__/
+
+# Certificates and keys (never commit)
+*.pem
+*.key
+*.crt
+*.cert
+certs/
+certificates/
+
+# Coverage and test output
+coverage/
+.nyc_output/
+
+# OS files
+Thumbs.db

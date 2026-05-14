@@ -321,7 +321,7 @@ export default function InstallDetail() {
               <input className="vio-input" value={rec.company_name} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
             </Field>
             <Field label="Date Installed">
-              <input className="vio-input" type="date" value={form.dateInstalled} onChange={e => set('dateInstalled', e.target.value)} />
+              <input className="vio-input" type="date" value={form.dateInstalled} onChange={e => set('dateInstalled', e.target.value)} onClick={e => { try { e.target.showPicker() } catch {} }} onFocus={e => { try { e.target.showPicker() } catch {} }} style={{ cursor: 'pointer' }} />
             </Field>
             <Field label="Submitted">
               <input className="vio-input" value={rec.submitted_at ? new Date(rec.submitted_at).toLocaleString() : ''} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />

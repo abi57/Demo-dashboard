@@ -117,7 +117,7 @@ export default function NewInstallation() {
 
   async function openCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } } })
       setCameraStream(stream)
       setCameraOpen(true)
       setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream }, 50)
@@ -131,7 +131,7 @@ export default function NewInstallation() {
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
-    const url = canvas.toDataURL('image/jpeg', 0.85)
+    const url = canvas.toDataURL('image/jpeg', 1.0)
     setSerialPhotos(p => [...p, { url, name: `serial-capture-${p.length + 1}.jpg` }])
     closeCamera()
     setErrors(e => ({ ...e, serialPhotos: undefined }))
@@ -155,7 +155,7 @@ export default function NewInstallation() {
 
   async function openInstallCam() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } } })
       setInstallCamStream(stream)
       setInstallCamOpen(true)
       setTimeout(() => { if (installVideoRef.current) installVideoRef.current.srcObject = stream }, 50)
@@ -169,7 +169,7 @@ export default function NewInstallation() {
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
-    const url = canvas.toDataURL('image/jpeg', 0.85)
+    const url = canvas.toDataURL('image/jpeg', 1.0)
     setPhotos(p => [...p, { url, name: `install-capture-${p.length + 1}.jpg` }])
     closeInstallCam()
   }
@@ -191,7 +191,7 @@ export default function NewInstallation() {
   // Video camera functions
   async function openVideoCam(targetSetter) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } }, audio: true })
       setVideoCamStream(stream)
       setVideoCamOpen(true)
       setActiveVideoTarget(() => targetSetter)
@@ -202,7 +202,8 @@ export default function NewInstallation() {
   function startRecording() {
     if (!videoCamStream) return
     videoChunksRef.current = []
-    const recorder = new MediaRecorder(videoCamStream, { mimeType: MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4' })
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4'
+    const recorder = new MediaRecorder(videoCamStream, { mimeType, videoBitsPerSecond: 8000000 })
     recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
     recorder.onstop = () => {
       const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType })
@@ -235,7 +236,18 @@ export default function NewInstallation() {
   function handleVideoFiles(files, setter) {
     Array.from(files).forEach(file => {
       const url = URL.createObjectURL(file)
-      setter(v => [...v, { url, name: file.name, blob: file }])
+      const videoEl = document.createElement('video')
+      videoEl.preload = 'metadata'
+      videoEl.onloadedmetadata = () => {
+        URL.revokeObjectURL(videoEl.src)
+        if (videoEl.duration < 300) {
+          alert(`Video "${file.name}" is only ${Math.round(videoEl.duration)} seconds long. Minimum required length is 5 minutes (300 seconds). Please record a longer video.`)
+          URL.revokeObjectURL(url)
+          return
+        }
+        setter(v => [...v, { url, name: file.name, blob: file, duration: videoEl.duration }])
+      }
+      videoEl.src = url
     })
   }
 
@@ -453,7 +465,9 @@ export default function NewInstallation() {
                   value={form.dateInstalled}
                   onChange={e => set('dateInstalled', e.target.value || '')}
                   onInput={e => set('dateInstalled', e.target.value || '')}
-                  style={{ color: form.dateInstalled ? 'var(--vio-text-primary)' : 'transparent' }}
+                  onClick={e => { try { e.target.showPicker() } catch {} }}
+                  onFocus={e => { try { e.target.showPicker() } catch {} }}
+                  style={{ color: form.dateInstalled ? 'var(--vio-text-primary)' : 'transparent', cursor: 'pointer' }}
                 />
                 {!form.dateInstalled && (
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--vio-text-muted)', pointerEvents: 'none' }}>
@@ -811,7 +825,8 @@ export default function NewInstallation() {
           <SectionLabel>Tower Video – Position 1</SectionLabel>
           <p style={{ fontSize: 13, color: 'var(--vio-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
             Move to a location approximately the same distance from the tower base as the height of the tower.
-            Record a 30-second video, zoomed in so the top of the tower is clearly visible against the sky.
+            Record a continuous <strong>5-minute</strong> stationary video, zoomed in so the top of the tower is clearly visible against the sky.
+            Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
 
           {videoCamOpen && activeVideoTarget === setVideosPos1 && (
@@ -872,8 +887,8 @@ export default function NewInstallation() {
         <div className="vio-card" style={{ marginBottom: 24 }}>
           <SectionLabel>Tower Video – Position 2 (90° Angle)</SectionLabel>
           <p style={{ fontSize: 13, color: 'var(--vio-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
-            Move to a position approximately 90° around the tower from your previous location.
-            Record a similar 30-second video, ensuring the top of the tower is clearly visible against the sky.
+            Move approximately 90° around the tower from the previous position and record a continuous <strong>5-minute</strong> stationary video.
+            Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
 
           {videoCamOpen && activeVideoTarget === setVideosPos2 && (
