@@ -117,7 +117,15 @@ export default function NewInstallation() {
 
   async function openCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } } })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 4096, min: 1920 },
+          height: { ideal: 2160, min: 1080 },
+          frameRate: { ideal: 30 },
+          resizeMode: 'none',
+        }
+      })
       setCameraStream(stream)
       setCameraOpen(true)
       setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream }, 50)
@@ -128,13 +136,20 @@ export default function NewInstallation() {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
+    // Use full native resolution from the video stream
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-    const url = canvas.toDataURL('image/jpeg', 1.0)
-    setSerialPhotos(p => [...p, { url, name: `serial-capture-${p.length + 1}.jpg` }])
-    closeCamera()
-    setErrors(e => ({ ...e, serialPhotos: undefined }))
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    // Use PNG for lossless capture, or JPEG at max quality
+    canvas.toBlob(blob => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      setSerialPhotos(p => [...p, { url, name: `serial-capture-${p.length + 1}.jpg`, blob }])
+      closeCamera()
+      setErrors(e => ({ ...e, serialPhotos: undefined }))
+    }, 'image/jpeg', 1.0)
   }
 
   function closeCamera() {
@@ -146,16 +161,23 @@ export default function NewInstallation() {
   function handleSerialFiles(files) {
     const remaining = 5 - serialPhotos.length
     Array.from(files).slice(0, remaining).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = ev => setSerialPhotos(p => [...p, { url: ev.target.result, name: file.name }])
-      reader.readAsDataURL(file)
+      const url = URL.createObjectURL(file)
+      setSerialPhotos(p => [...p, { url, name: file.name, blob: file }])
     })
     setErrors(e => ({ ...e, serialPhotos: undefined }))
   }
 
   async function openInstallCam() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } } })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 4096, min: 1920 },
+          height: { ideal: 2160, min: 1080 },
+          frameRate: { ideal: 30 },
+          resizeMode: 'none',
+        }
+      })
       setInstallCamStream(stream)
       setInstallCamOpen(true)
       setTimeout(() => { if (installVideoRef.current) installVideoRef.current.srcObject = stream }, 50)
@@ -168,10 +190,15 @@ export default function NewInstallation() {
     if (!video || !canvas) return
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-    const url = canvas.toDataURL('image/jpeg', 1.0)
-    setPhotos(p => [...p, { url, name: `install-capture-${p.length + 1}.jpg` }])
-    closeInstallCam()
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    canvas.toBlob(blob => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      setPhotos(p => [...p, { url, name: `install-capture-${p.length + 1}.jpg`, blob }])
+      closeInstallCam()
+    }, 'image/jpeg', 1.0)
   }
 
   function closeInstallCam() {
@@ -182,16 +209,24 @@ export default function NewInstallation() {
 
   function handleInstallFiles(files) {
     Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = ev => setPhotos(p => [...p, { url: ev.target.result, name: file.name }])
-      reader.readAsDataURL(file)
+      const url = URL.createObjectURL(file)
+      setPhotos(p => [...p, { url, name: file.name, blob: file }])
     })
   }
 
   // Video camera functions
   async function openVideoCam(targetSetter) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } }, audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 4096, min: 1920 },
+          height: { ideal: 2160, min: 1080 },
+          frameRate: { ideal: 30 },
+          resizeMode: 'none',
+        },
+        audio: true,
+      })
       setVideoCamStream(stream)
       setVideoCamOpen(true)
       setActiveVideoTarget(() => targetSetter)
@@ -202,15 +237,37 @@ export default function NewInstallation() {
   function startRecording() {
     if (!videoCamStream) return
     videoChunksRef.current = []
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4'
-    const recorder = new MediaRecorder(videoCamStream, { mimeType, videoBitsPerSecond: 8000000 })
+
+    // Pick the best available codec with highest quality
+    const codecs = [
+      'video/mp4;codecs=avc1.640034',   // H.264 High Profile Level 5.2
+      'video/mp4;codecs=avc1.42E01E',   // H.264 Baseline
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4',
+    ]
+    const mimeType = codecs.find(c => MediaRecorder.isTypeSupported(c)) || ''
+
+    // Get actual video track resolution to set appropriate bitrate
+    const videoTrack = videoCamStream.getVideoTracks()[0]
+    const settings = videoTrack?.getSettings() || {}
+    const pixels = (settings.width || 1920) * (settings.height || 1080)
+    // Scale bitrate: ~16 Mbps for 1080p, ~40 Mbps for 4K
+    const bitrate = pixels >= 3840 * 2160 ? 40000000 : pixels >= 1920 * 1080 ? 16000000 : 8000000
+
+    const options = { videoBitsPerSecond: bitrate }
+    if (mimeType) options.mimeType = mimeType
+
+    const recorder = new MediaRecorder(videoCamStream, options)
     recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
     recorder.onstop = () => {
       const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType })
       const url = URL.createObjectURL(blob)
-      if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.webm`, blob }])
+      const ext = recorder.mimeType.includes('mp4') ? 'mp4' : 'webm'
+      if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.${ext}`, blob }])
     }
-    recorder.start()
+    recorder.start(1000) // Collect data every second for reliability
     setVideoRecorder(recorder)
     setIsRecording(true)
   }
@@ -315,25 +372,23 @@ export default function NewInstallation() {
       // Upload media files
       const { apiUploadMedia } = await import('../api')
       for (const p of serialPhotos) {
-        if (p.blob || p.url?.startsWith('data:')) {
-          const blob = p.blob || await fetch(p.url).then(r => r.blob())
-          await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: 'image/jpeg' }))
-        }
+        const blob = p.blob || await fetch(p.url).then(r => r.blob())
+        await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: blob.type || 'image/jpeg' }))
       }
       for (const p of photos) {
-        if (p.blob || p.url?.startsWith('data:')) {
-          const blob = p.blob || await fetch(p.url).then(r => r.blob())
-          await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: 'image/jpeg' }))
-        }
+        const blob = p.blob || await fetch(p.url).then(r => r.blob())
+        await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: blob.type || 'image/jpeg' }))
       }
       for (const v of videosPos1) {
         if (v.blob) {
-          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
+          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
+          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: ext }))
         }
       }
       for (const v of videosPos2) {
         if (v.blob) {
-          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' }))
+          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
+          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: ext }))
         }
       }
 
