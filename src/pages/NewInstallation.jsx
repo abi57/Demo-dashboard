@@ -111,7 +111,11 @@ export default function NewInstallation() {
   // Native capture refs (for mobile)
   const serialCaptureRef = useRef()
   const installCaptureRef = useRef()
-  const videoCaptureRef = useRef()
+
+  // Recording duration timer
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const recordingTimerRef = useRef(null)
+  const [videoError, setVideoError] = useState('')
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
 
@@ -120,10 +124,9 @@ export default function NewInstallation() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 4096, min: 1920 },
-          height: { ideal: 2160, min: 1080 },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
           frameRate: { ideal: 30 },
-          resizeMode: 'none',
         }
       })
       setCameraStream(stream)
@@ -172,10 +175,9 @@ export default function NewInstallation() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 4096, min: 1920 },
-          height: { ideal: 2160, min: 1080 },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
           frameRate: { ideal: 30 },
-          resizeMode: 'none',
         }
       })
       setInstallCamStream(stream)
@@ -216,14 +218,21 @@ export default function NewInstallation() {
 
   // Video camera functions
   async function openVideoCam(targetSetter) {
+    setVideoError('')
     try {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // Fallback: open native file picker for video
+        setVideoError('Browser does not support in-app recording. Please use "Upload Video" or record with your camera app first.')
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'environment',
-          width: { ideal: 4096, min: 1920 },
-          height: { ideal: 2160, min: 1080 },
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
           frameRate: { ideal: 30 },
-          resizeMode: 'none',
         },
         audio: true,
       })
@@ -231,48 +240,99 @@ export default function NewInstallation() {
       setVideoCamOpen(true)
       setActiveVideoTarget(() => targetSetter)
       setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
-    } catch { alert('Unable to access camera/microphone.') }
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setVideoError('Camera permission denied. Please allow camera access in your browser settings and try again.')
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setVideoError('No camera found on this device.')
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setVideoError('Camera is in use by another app. Please close other camera apps and try again.')
+      } else {
+        setVideoError('Unable to access camera. Please use "Upload Video" instead.')
+      }
+    }
   }
 
   function startRecording() {
     if (!videoCamStream) return
+    setVideoError('')
     videoChunksRef.current = []
 
-    // Pick the best available codec with highest quality
+    // Find the best supported MIME type for this browser
     const codecs = [
-      'video/mp4;codecs=avc1.640034',   // H.264 High Profile Level 5.2
+      'video/mp4;codecs=avc1.640028',   // H.264 High Profile Level 4.0
       'video/mp4;codecs=avc1.42E01E',   // H.264 Baseline
+      'video/mp4',
       'video/webm;codecs=vp9',
       'video/webm;codecs=vp8',
       'video/webm',
-      'video/mp4',
     ]
-    const mimeType = codecs.find(c => MediaRecorder.isTypeSupported(c)) || ''
+    let mimeType = ''
+    for (const codec of codecs) {
+      try {
+        if (MediaRecorder.isTypeSupported(codec)) { mimeType = codec; break }
+      } catch { /* skip unsupported */ }
+    }
 
     // Get actual video track resolution to set appropriate bitrate
     const videoTrack = videoCamStream.getVideoTracks()[0]
     const settings = videoTrack?.getSettings() || {}
-    const pixels = (settings.width || 1920) * (settings.height || 1080)
-    // Scale bitrate: ~16 Mbps for 1080p, ~40 Mbps for 4K
-    const bitrate = pixels >= 3840 * 2160 ? 40000000 : pixels >= 1920 * 1080 ? 16000000 : 8000000
+    const width = settings.width || 1920
+    const height = settings.height || 1080
+    const pixels = width * height
+
+    // Scale bitrate based on resolution:
+    // 1080p = ~8 Mbps, 720p = ~5 Mbps, 4K = ~20 Mbps
+    let bitrate = 8000000
+    if (pixels >= 3840 * 2160) bitrate = 20000000
+    else if (pixels >= 1920 * 1080) bitrate = 8000000
+    else if (pixels >= 1280 * 720) bitrate = 5000000
+    else bitrate = 3000000
 
     const options = { videoBitsPerSecond: bitrate }
     if (mimeType) options.mimeType = mimeType
 
-    const recorder = new MediaRecorder(videoCamStream, options)
+    let recorder
+    try {
+      recorder = new MediaRecorder(videoCamStream, options)
+    } catch {
+      // Fallback: try without specific options
+      try {
+        recorder = new MediaRecorder(videoCamStream)
+      } catch (err2) {
+        setVideoError('Your browser does not support video recording. Please use "Upload Video" instead.')
+        closeVideoCam()
+        return
+      }
+    }
+
     recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
+    recorder.onerror = () => {
+      setVideoError('Recording failed unexpectedly. Please try again.')
+      stopRecording()
+    }
     recorder.onstop = () => {
-      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType })
+      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType || 'video/webm' })
       const url = URL.createObjectURL(blob)
-      const ext = recorder.mimeType.includes('mp4') ? 'mp4' : 'webm'
+      const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm'
       if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.${ext}`, blob }])
     }
+
     recorder.start(1000) // Collect data every second for reliability
     setVideoRecorder(recorder)
     setIsRecording(true)
+    setRecordingDuration(0)
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingDuration(d => d + 1)
+    }, 1000)
   }
 
   function stopRecording() {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    setRecordingDuration(0)
     if (videoRecorder && videoRecorder.state !== 'inactive') {
       videoRecorder.stop()
     }
@@ -282,27 +342,58 @@ export default function NewInstallation() {
   }
 
   function closeVideoCam() {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
     if (videoCamStream) videoCamStream.getTracks().forEach(t => t.stop())
     setVideoCamStream(null)
     setVideoCamOpen(false)
     setIsRecording(false)
     setVideoRecorder(null)
     setActiveVideoTarget(null)
+    setRecordingDuration(0)
+  }
+
+  function formatDuration(seconds) {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
   function handleVideoFiles(files, setter) {
     Array.from(files).forEach(file => {
+      // Validate file size (500MB max)
+      if (file.size > 500 * 1024 * 1024) {
+        setVideoError(`Video "${file.name}" is too large (${Math.round(file.size / (1024 * 1024))}MB). Maximum allowed is 500MB.`)
+        return
+      }
+      // Validate file type
+      const validTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska', 'video/3gpp', 'video/mpeg']
+      const ext = (file.name || '').split('.').pop()?.toLowerCase()
+      const validExts = ['mp4', 'mov', 'webm', 'avi', 'mkv', '3gp', 'mpeg']
+      if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+        setVideoError(`Unsupported video format: "${file.name}". Please use MP4, MOV, WebM, or AVI.`)
+        return
+      }
+
       const url = URL.createObjectURL(file)
       const videoEl = document.createElement('video')
       videoEl.preload = 'metadata'
       videoEl.onloadedmetadata = () => {
         URL.revokeObjectURL(videoEl.src)
-        if (videoEl.duration < 300) {
-          alert(`Video "${file.name}" is only ${Math.round(videoEl.duration)} seconds long. Minimum required length is 5 minutes (300 seconds). Please record a longer video.`)
+        if (videoEl.duration && isFinite(videoEl.duration) && videoEl.duration < 300) {
+          setVideoError(`Video "${file.name}" is only ${Math.round(videoEl.duration)} seconds long. Minimum required length is 5 minutes (300 seconds). Please record a longer video.`)
           URL.revokeObjectURL(url)
           return
         }
+        setVideoError('')
         setter(v => [...v, { url, name: file.name, blob: file, duration: videoEl.duration }])
+      }
+      videoEl.onerror = () => {
+        // If metadata can't be read, still allow the file (some formats don't report duration)
+        setVideoError('')
+        setter(v => [...v, { url, name: file.name, blob: file }])
       }
       videoEl.src = url
     })
@@ -381,14 +472,14 @@ export default function NewInstallation() {
       }
       for (const v of videosPos1) {
         if (v.blob) {
-          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
-          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: ext }))
+          const mimeType = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm')
+          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: mimeType }))
         }
       }
       for (const v of videosPos2) {
         if (v.blob) {
-          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
-          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: ext }))
+          const mimeType = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm')
+          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: mimeType }))
         }
       }
 
@@ -883,11 +974,20 @@ export default function NewInstallation() {
             Record a continuous <strong>5-minute</strong> stationary video, zoomed in so the top of the tower is clearly visible against the sky.
             Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
+          <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginBottom: 14, fontStyle: 'italic' }}>
+            Tip: Record in landscape where possible. Keep the camera steady. For best quality on mobile, use "Upload Video" after recording with your native camera app.
+          </p>
 
           {videoCamOpen && activeVideoTarget === setVideosPos1 && (
             <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
               <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
-              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                {isRecording && (
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', fontFamily: 'ui-monospace, monospace', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                    REC {formatDuration(recordingDuration)}
+                  </span>
+                )}
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
@@ -919,6 +1019,8 @@ export default function NewInstallation() {
             </div>
           )}
 
+          {videoError && (activeVideoTarget === setVideosPos1 || !activeVideoTarget) && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
+
           {videosPos1.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {videosPos1.map((v, i) => (
@@ -945,11 +1047,20 @@ export default function NewInstallation() {
             Move approximately 90° around the tower from the previous position and record a continuous <strong>5-minute</strong> stationary video.
             Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
+          <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginBottom: 14, fontStyle: 'italic' }}>
+            Tip: Record in landscape where possible. Keep the camera steady. For best quality on mobile, use "Upload Video" after recording with your native camera app.
+          </p>
 
           {videoCamOpen && activeVideoTarget === setVideosPos2 && (
             <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
               <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
-              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                {isRecording && (
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', fontFamily: 'ui-monospace, monospace', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                    REC {formatDuration(recordingDuration)}
+                  </span>
+                )}
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
@@ -980,6 +1091,8 @@ export default function NewInstallation() {
                 onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
             </div>
           )}
+
+          {videoError && activeVideoTarget === setVideosPos2 && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
 
           {videosPos2.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

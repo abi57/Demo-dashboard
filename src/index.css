@@ -719,3 +719,9 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 [data-theme="dark"] .auth-error-banner { background: #1c1214; border-color: #5c1a1a; }
 
 /* Responsive auth handled in breakpoints above */
+
+/* ─── Recording pulse animation ─────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
