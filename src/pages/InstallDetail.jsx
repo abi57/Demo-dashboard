@@ -100,8 +100,9 @@ export default function InstallDetail() {
 
   function addFiles(files, setter) {
     Array.from(files).forEach(file => {
-      const url = URL.createObjectURL(file)
-      setter(p => [...p, { url, name: file.name, blob: file }])
+      const reader = new FileReader()
+      reader.onload = ev => setter(p => [...p, { url: ev.target.result, name: file.name }])
+      reader.readAsDataURL(file)
     })
   }
   function addVideoFiles(files, setter) {
@@ -151,10 +152,10 @@ export default function InstallDetail() {
         climbs: climbs.map(c => ({ upStart: c.upStart || '', upFinish: c.upFinish || '', downStart: c.downStart || '', downFinish: c.downFinish || '' })),
       })
       const { apiUploadMedia } = await import('../api')
-      for (const p of serialPhotos) { if (!p.id && (p.blob || p.url?.startsWith('data:') || p.url?.startsWith('blob:'))) { const blob = p.blob || await fetch(p.url).then(r => r.blob()); await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: blob.type || 'image/jpeg' })) } }
-      for (const p of photos) { if (!p.id && (p.blob || p.url?.startsWith('data:') || p.url?.startsWith('blob:'))) { const blob = p.blob || await fetch(p.url).then(r => r.blob()); await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: blob.type || 'image/jpeg' })) } }
-      for (const v of videosPos1) { if (!v.id && v.blob) { const mt = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm'); await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: mt })) } }
-      for (const v of videosPos2) { if (!v.id && v.blob) { const mt = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm'); await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: mt })) } }
+      for (const p of serialPhotos) { if (!p.id && (p.blob || p.url?.startsWith('data:'))) { const blob = p.blob || await fetch(p.url).then(r => r.blob()); await apiUploadMedia(id, 'serial_photo', new File([blob], p.name || 'serial.jpg', { type: 'image/jpeg' })) } }
+      for (const p of photos) { if (!p.id && (p.blob || p.url?.startsWith('data:'))) { const blob = p.blob || await fetch(p.url).then(r => r.blob()); await apiUploadMedia(id, 'install_photo', new File([blob], p.name || 'photo.jpg', { type: 'image/jpeg' })) } }
+      for (const v of videosPos1) { if (!v.id && v.blob) { await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' })) } }
+      for (const v of videosPos2) { if (!v.id && v.blob) { await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.webm', { type: 'video/webm' })) } }
       setSaving(false)
       push('Installation updated successfully', 'success')
       navigate('/install-records')
@@ -185,10 +186,9 @@ export default function InstallDetail() {
 
     async function openWebcam() {
       try {
-        const constraints = isVideo
-          ? { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }, audio: true }
-          : { video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 } } }
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        const stream = await navigator.mediaDevices.getUserMedia(
+          isVideo ? { video: { facingMode: 'environment' }, audio: true } : { video: { facingMode: 'environment' } }
+        )
         setCamStream(stream)
         setCamOpen(true)
         setTimeout(() => { if (vidRef.current) vidRef.current.srcObject = stream }, 50)
@@ -199,43 +199,22 @@ export default function InstallDetail() {
       const v = vidRef.current, c = canRef.current
       if (!v || !c) return
       c.width = v.videoWidth; c.height = v.videoHeight
-      const ctx = c.getContext('2d')
-      ctx.imageSmoothingEnabled = false
-      ctx.drawImage(v, 0, 0)
-      c.toBlob(blob => {
-        if (!blob) return
-        const url = URL.createObjectURL(blob)
-        setItems(p => [...p, { url, name: `capture-${Date.now()}.jpg`, blob }])
-        closeCam()
-      }, 'image/jpeg', 1.0)
+      c.getContext('2d').drawImage(v, 0, 0)
+      const url = c.toDataURL('image/jpeg', 0.85)
+      setItems(p => [...p, { url, name: `capture-${Date.now()}.jpg` }])
+      closeCam()
     }
 
     function startRec() {
       if (!camStream) return
       chunksRef.current = []
-
-      // Find best codec and set high bitrate
-      const codecs = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']
-      let mimeType = ''
-      for (const codec of codecs) {
-        try { if (MediaRecorder.isTypeSupported(codec)) { mimeType = codec; break } } catch {}
-      }
-      const options = { videoBitsPerSecond: 8000000 }
-      if (mimeType) options.mimeType = mimeType
-
-      let rec
-      try {
-        rec = new MediaRecorder(camStream, options)
-      } catch {
-        try { rec = new MediaRecorder(camStream) } catch { return }
-      }
+      const rec = new MediaRecorder(camStream)
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'video/webm' })
-        const ext = (rec.mimeType || '').includes('mp4') ? 'mp4' : 'webm'
-        setItems(v => [...v, { url: URL.createObjectURL(blob), name: `video-${Date.now()}.${ext}`, blob }])
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType })
+        setItems(v => [...v, { url: URL.createObjectURL(blob), name: `video-${Date.now()}.webm`, blob }])
       }
-      rec.start(1000)
+      rec.start()
       setRecorder(rec)
       setRecording(true)
     }

@@ -124,9 +124,10 @@ export default function NewInstallation() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
+          width: { ideal: 4096, min: 1920 },
+          height: { ideal: 2160, min: 1080 },
           frameRate: { ideal: 30 },
+          resizeMode: 'none',
         }
       })
       setCameraStream(stream)
@@ -175,9 +176,10 @@ export default function NewInstallation() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
+          width: { ideal: 4096, min: 1920 },
+          height: { ideal: 2160, min: 1080 },
           frameRate: { ideal: 30 },
+          resizeMode: 'none',
         }
       })
       setInstallCamStream(stream)
@@ -472,14 +474,14 @@ export default function NewInstallation() {
       }
       for (const v of videosPos1) {
         if (v.blob) {
-          const mimeType = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm')
-          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: mimeType }))
+          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
+          await apiUploadMedia(id, 'video_position_1', new File([v.blob], v.name || 'video.mp4', { type: ext }))
         }
       }
       for (const v of videosPos2) {
         if (v.blob) {
-          const mimeType = v.blob.type || (v.name?.match(/\.mov$/i) ? 'video/quicktime' : v.name?.match(/\.mp4$/i) ? 'video/mp4' : 'video/webm')
-          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: mimeType }))
+          const ext = v.name?.endsWith('.mp4') ? 'video/mp4' : v.blob.type || 'video/webm'
+          await apiUploadMedia(id, 'video_position_2', new File([v.blob], v.name || 'video.mp4', { type: ext }))
         }
       }
 
