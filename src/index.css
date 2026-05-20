@@ -287,7 +287,7 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   height: 68px; z-index: 50;
   background: linear-gradient(135deg, #e84393 0%, #a855f7 40%, #6366f1 70%, #3b82f6 100%);
   display: flex; align-items: center;
-  padding: 0 28px; gap: 16;
+  padding: 0 24px; gap: 12px;
   transition: left 0.25s ease;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   overflow: visible;
@@ -324,6 +324,7 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   outline: none; font-family: inherit;
   transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   -webkit-appearance: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .header-search-input::placeholder { color: rgba(255,255,255,0.45); }
 .header-search-input:focus {
@@ -344,6 +345,34 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 }
 .header-icon-btn:hover { background: rgba(255,255,255,0.18); }
 .header-icon-btn:active { transform: scale(0.95); }
+
+/* Header right section */
+.header-right {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; margin-left: auto;
+}
+
+/* Profile button */
+.header-profile-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 6px; border-radius: 20px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer; transition: background 0.12s; font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.header-profile-btn:hover { background: rgba(255,255,255,0.22); }
+.header-profile-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,0.25); border: 1.5px solid rgba(255,255,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.header-profile-name {
+  font-size: 14px; font-weight: 500; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 140px;
+}
+.header-profile-chevron { color: rgba(255,255,255,0.5); flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    RESPONSIVE — MOBILE FIRST
@@ -366,13 +395,16 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   .sidebar { transform: translateX(-100%); }
   .sidebar--open { transform: translateX(0); }
   .app-main { margin-left: 0; }
-  .app-header { left: 0; padding: 0 14px; gap: 10; height: 60px; }
+  .app-header { left: 0; padding: 0 14px; gap: 10px; height: 60px; }
   .app-content { padding: 76px 16px 32px; }
   .mobile-menu-btn { display: flex !important; }
-  .header-search { max-width: none; margin-left: 8px; }
+  .header-search { max-width: none; }
   .header-search-input { height: 38px; font-size: 14px; border-radius: 9px; padding: 0 12px 0 36px; }
   .header-search-icon { left: 12px; width: 15px; height: 15px; }
   .header-icon-btn { width: 38px; height: 38px; border-radius: 9px; }
+  .header-right { gap: 8px; }
+  .header-profile-btn { padding: 5px 12px 5px 5px; gap: 8px; }
+  .header-profile-avatar { width: 28px; height: 28px; font-size: 11px; }
   .vio-card { padding: 20px; border-radius: 12px; }
   .vio-input { height: 44px; font-size: 16px; border-radius: 10px; padding: 0 14px; }
   .vio-btn { height: 44px; border-radius: 10px; font-size: 15px; }
@@ -382,13 +414,15 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 
 /* ─── Mobile Landscape ≤768px ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .app-header { height: 56px; padding: 0 12px; gap: 8; }
+  .app-header { height: 56px; padding: 0 12px; gap: 8px; }
   .app-content { padding: 72px 14px 28px; }
-  .company-label { display: none; }
+  .header-profile-name { display: none; }
+  .header-profile-chevron { display: none; }
+  .header-profile-btn { padding: 4px; border-radius: 50%; }
   .header-search-input { height: 36px; font-size: 14px; padding: 0 10px 0 34px; border-radius: 8px; }
   .header-search-icon { left: 10px; width: 14px; height: 14px; }
   .header-icon-btn { width: 36px; height: 36px; border-radius: 8px; }
-  .header-right { gap: 6px !important; }
+  .header-right { gap: 6px; }
   .sidebar { width: 280px; }
   .vio-card { padding: 18px 16px; border-radius: 12px; }
   .vio-card [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
@@ -408,15 +442,17 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 /* ─── Mobile Portrait ≤480px ────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   html { font-size: 16.5px; }
-  .app-header { height: 76px; padding: 0 12px; gap: 10; }
-  .app-content { padding: 90px 12px 28px; }
-  .header-search { margin-left: 8px; flex: 20; min-width: 0; }
-  .header-search-input { height: 44px; font-size: 16px; padding: 0 12px 0 38px; border-radius: 10px; }
-  .header-search-icon { left: 12px; width: 17px; height: 17px; }
-  .header-icon-btn { width: 42px; height: 42px; border-radius: 10px; }
-  .header-icon-btn svg { width: 21px; height: 21px; }
-  .header-right { gap: 6px !important; flex-shrink: 0; }
-  .notif-dropdown { position: fixed !important; top: 76px !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; border-radius: 12px !important; }
+  .app-header { height: 60px; padding: 0 10px; gap: 8px; }
+  .app-content { padding: 76px 12px 28px; }
+  .header-search { min-width: 0; }
+  .header-search-input { height: 38px; font-size: 14px; padding: 0 10px 0 34px; border-radius: 9px; }
+  .header-search-icon { left: 10px; width: 15px; height: 15px; }
+  .header-icon-btn { width: 36px; height: 36px; border-radius: 9px; }
+  .header-icon-btn svg { width: 18px; height: 18px; }
+  .header-right { gap: 5px; }
+  .header-profile-btn { padding: 3px; border-radius: 50%; }
+  .header-profile-avatar { width: 28px; height: 28px; font-size: 11px; }
+  .notif-dropdown { position: fixed !important; top: 60px !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; border-radius: 12px !important; }
   .vio-card { padding: 18px 16px; border-radius: 12px; }
   .vio-card [style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
   .vio-input { height: 52px; font-size: 17px; border-radius: 11px; padding: 0 16px; }
@@ -443,13 +479,16 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 /* ─── Small Phone ≤360px ────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
   html { font-size: 15.5px; }
-  .app-header { height: 68px; padding: 0 10px; gap: 8; }
-  .app-content { padding: 82px 10px 24px; }
-  .header-search { margin-left: 6px; flex: 14; min-width: 0; }
-  .header-search-input { height: 40px; font-size: 15px; padding: 0 10px 0 34px; border-radius: 9px; }
-  .header-search-icon { left: 10px; width: 15px; height: 15px; }
-  .header-icon-btn { width: 38px; height: 38px; border-radius: 9px; }
-  .header-icon-btn svg { width: 19px; height: 19px; }
+  .app-header { height: 56px; padding: 0 8px; gap: 6px; }
+  .app-content { padding: 72px 10px 24px; }
+  .header-search { min-width: 0; }
+  .header-search-input { height: 34px; font-size: 13px; padding: 0 8px 0 30px; border-radius: 8px; }
+  .header-search-icon { left: 8px; width: 14px; height: 14px; }
+  .header-icon-btn { width: 32px; height: 32px; border-radius: 8px; }
+  .header-icon-btn svg { width: 16px; height: 16px; }
+  .header-right { gap: 4px; }
+  .header-profile-btn { padding: 3px; border-radius: 50%; }
+  .header-profile-avatar { width: 26px; height: 26px; font-size: 10px; }
   .vio-card { padding: 16px 14px; border-radius: 10px; }
   .vio-input { height: 50px; font-size: 16px; padding: 0 14px; border-radius: 10px; }
   .vio-btn { height: 50px; padding: 0 20px; font-size: 16px; border-radius: 10px; }
@@ -458,13 +497,13 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   .auth-input { height: 50px; font-size: 16px; }
   .auth-submit { height: 52px; font-size: 16px; }
   .climb-time-input { height: 44px !important; font-size: 15px !important; }
-  .notif-dropdown { top: 68px !important; left: 6px !important; right: 6px !important; }
+  .notif-dropdown { top: 56px !important; left: 6px !important; right: 6px !important; }
 }
 
 /* ─── Large Desktop ≥1536px ─────────────────────────────────────────────────── */
 @media (min-width: 1536px) {
   .app-content { max-width: 1600px; padding: 100px 40px 48px; }
-  .app-header { padding: 0 36px; height: 72px; }
+  .app-header { padding: 0 36px; height: 72px; gap: 16px; }
   .header-search { max-width: 500px; }
   .header-search-input { height: 44px; font-size: 15px; }
   .header-icon-btn { width: 44px; height: 44px; }

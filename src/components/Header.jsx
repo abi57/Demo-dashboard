@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useNotifications } from '../context/NotificationContext'
 
-export default function Header({ title, onMenuToggle }) {
+export default function Header({ onMenuToggle }) {
   const { user, logout } = useAuth()
   const { isDark, toggle } = useTheme()
   const { items, remove, clearAll } = useNotifications()
@@ -29,7 +29,7 @@ export default function Header({ title, onMenuToggle }) {
         <Menu size={20} />
       </button>
 
-      {/* Search */}
+      {/* Search — takes available space */}
       <form onSubmit={handleSearch} className="header-search">
         <Search size={15} className="header-search-icon" />
         <input
@@ -39,9 +39,8 @@ export default function Header({ title, onMenuToggle }) {
         />
       </form>
 
-      <div style={{ flex: 1 }} />
-
-      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      {/* Right section — icons + profile */}
+      <div className="header-right">
         {/* Notification bell */}
         <div style={{ position: 'relative' }}>
           <button onClick={() => { setBellOpen(o => !o); setMenuOpen(false) }} className="header-icon-btn" title="Notifications">
@@ -102,15 +101,12 @@ export default function Header({ title, onMenuToggle }) {
         {/* Company dropdown */}
         {user && (
           <div style={{ position: 'relative' }}>
-            <button onClick={() => { setMenuOpen(o => !o); setBellOpen(false) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 14px 6px 6px', borderRadius: 20, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', transition: 'background 0.12s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}>
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+            <button onClick={() => { setMenuOpen(o => !o); setBellOpen(false) }} className="header-profile-btn">
+              <div className="header-profile-avatar">
                 {user.company?.[0]?.toUpperCase()}
               </div>
-              <span className="company-label" style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>{user.company}</span>
-              <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
+              <span className="header-profile-name">{user.company}</span>
+              <ChevronDown size={14} className="header-profile-chevron" />
             </button>
             {menuOpen && (
               <>
