@@ -219,39 +219,73 @@ export default function NewInstallation() {
 
   async function openVideoCam(targetSetter) {
     setVideoError('')
+    videoChunksRef.current = []
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 30 },
+        },
         audio: true,
       })
       setVideoCamStream(stream)
       setVideoCamOpen(true)
       setActiveVideoTarget(() => targetSetter)
-      setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
-    } catch {
-      setVideoError('Unable to access camera. Please use "Upload Video" instead.')
+      setTimeout(() => {
+        if (videoCamRef.current) {
+          videoCamRef.current.srcObject = stream
+          videoCamRef.current.muted = true
+          videoCamRef.current.play().catch(() => {})
+        }
+      }, 50)
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setVideoError('Camera permission denied. Please allow camera access and try again.')
+      } else if (err.name === 'NotFoundError') {
+        setVideoError('No camera found on this device.')
+      } else {
+        setVideoError('Unable to access camera. Please use "Upload Video" instead.')
+      }
     }
   }
 
   function startRecording() {
     if (!videoCamStream) return
+    setVideoError('')
     videoChunksRef.current = []
+
     let recorder
+    // Attempt high bitrate (5 Mbps) for quality; fallback to browser default
     try {
-      recorder = new MediaRecorder(videoCamStream)
+      recorder = new MediaRecorder(videoCamStream, { videoBitsPerSecond: 5000000 })
     } catch {
-      setVideoError('Recording not supported in this browser.')
-      closeVideoCam()
-      return
+      try {
+        recorder = new MediaRecorder(videoCamStream)
+      } catch {
+        setVideoError('Recording not supported in this browser. Please use "Upload Video".')
+        closeVideoCam()
+        return
+      }
     }
-    recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
+
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) videoChunksRef.current.push(e.data) }
     recorder.onstop = () => {
-      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType || 'video/webm' })
+      const mimeType = recorder.mimeType || 'video/webm'
+      const blob = new Blob(videoChunksRef.current, { type: mimeType })
       const url = URL.createObjectURL(blob)
-      const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm'
+      const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
       if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.${ext}`, blob }])
+      // Stop camera tracks after recording completes
+      if (videoCamStream) videoCamStream.getTracks().forEach(t => t.stop())
     }
-    recorder.start()
+    recorder.onerror = () => {
+      setVideoError('Recording failed. Please try again.')
+      closeVideoCam()
+    }
+
+    recorder.start(1000) // Collect data in 1-second chunks for reliability
     setVideoRecorder(recorder)
     setIsRecording(true)
   }
@@ -260,7 +294,9 @@ export default function NewInstallation() {
     if (videoRecorder && videoRecorder.state !== 'inactive') videoRecorder.stop()
     setIsRecording(false)
     setVideoRecorder(null)
-    closeVideoCam()
+    setVideoCamOpen(false)
+    setActiveVideoTarget(null)
+    setVideoCamStream(null)
   }
 
   function closeVideoCam() {
@@ -930,8 +966,14 @@ export default function NewInstallation() {
 
           {/* Webcam viewfinder for desktop */}
           {videoCamOpen && activeVideoTarget === setVideosPos1 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
               <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              {isRecording && (
+                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'ui-monospace, monospace' }}>REC</span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
@@ -998,8 +1040,14 @@ export default function NewInstallation() {
 
           {/* Webcam viewfinder for desktop */}
           {videoCamOpen && activeVideoTarget === setVideosPos2 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
               <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              {isRecording && (
+                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'ui-monospace, monospace' }}>REC</span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>

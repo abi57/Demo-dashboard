@@ -186,35 +186,55 @@ export default function InstallDetail() {
 
     async function openWebcam() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(
-          isVideo ? { video: { facingMode: 'environment' }, audio: true } : { video: { facingMode: 'environment' } }
-        )
+        const constraints = isVideo
+          ? { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920, min: 1280 }, height: { ideal: 1080, min: 720 }, frameRate: { ideal: 30 } }, audio: true }
+          : { video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 } } }
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
         setCamStream(stream)
         setCamOpen(true)
-        setTimeout(() => { if (vidRef.current) vidRef.current.srcObject = stream }, 50)
-      } catch { alert('Unable to access camera.') }
+        setTimeout(() => {
+          if (vidRef.current) {
+            vidRef.current.srcObject = stream
+            vidRef.current.muted = true
+            vidRef.current.play().catch(() => {})
+          }
+        }, 50)
+      } catch { alert('Unable to access camera. Please check permissions.') }
     }
 
     function capturePhoto() {
       const v = vidRef.current, c = canRef.current
       if (!v || !c) return
       c.width = v.videoWidth; c.height = v.videoHeight
-      c.getContext('2d').drawImage(v, 0, 0)
-      const url = c.toDataURL('image/jpeg', 0.85)
-      setItems(p => [...p, { url, name: `capture-${Date.now()}.jpg` }])
-      closeCam()
+      const ctx = c.getContext('2d')
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(v, 0, 0)
+      c.toBlob(blob => {
+        if (!blob) return
+        const url = URL.createObjectURL(blob)
+        setItems(p => [...p, { url, name: `capture-${Date.now()}.jpg`, blob }])
+        closeCam()
+      }, 'image/jpeg', 1.0)
     }
 
     function startRec() {
       if (!camStream) return
       chunksRef.current = []
-      const rec = new MediaRecorder(camStream)
-      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType })
-        setItems(v => [...v, { url: URL.createObjectURL(blob), name: `video-${Date.now()}.webm`, blob }])
+      let rec
+      try {
+        rec = new MediaRecorder(camStream, { videoBitsPerSecond: 5000000 })
+      } catch {
+        try { rec = new MediaRecorder(camStream) } catch { return }
       }
-      rec.start()
+      rec.ondataavailable = e => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data) }
+      rec.onstop = () => {
+        const mimeType = rec.mimeType || 'video/webm'
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+        setItems(v => [...v, { url: URL.createObjectURL(blob), name: `video-${Date.now()}.${ext}`, blob }])
+        if (camStream) camStream.getTracks().forEach(t => t.stop())
+      }
+      rec.start(1000)
       setRecorder(rec)
       setRecording(true)
     }
@@ -223,7 +243,8 @@ export default function InstallDetail() {
       if (recorder && recorder.state !== 'inactive') recorder.stop()
       setRecording(false)
       setRecorder(null)
-      closeCam()
+      setCamOpen(false)
+      setCamStream(null)
     }
 
     function closeCam() {
