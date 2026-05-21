@@ -91,17 +91,10 @@ export default function NewInstallation() {
   const installFileRef = useRef()
   const [videosPos1, setVideosPos1] = useState([])
   const [videosPos2, setVideosPos2] = useState([])
-  const [videoCamOpen, setVideoCamOpen] = useState(false)
-  const [videoCamStream, setVideoCamStream] = useState(null)
-  const [videoRecorder, setVideoRecorder] = useState(null)
-  const [isRecording, setIsRecording] = useState(false)
-  const [activeVideoTarget, setActiveVideoTarget] = useState(null)
-  const videoCamRef = useRef()
   const videoFileRef1 = useRef()
   const videoFileRef2 = useRef()
   const videoCaptureRef1 = useRef()
   const videoCaptureRef2 = useRef()
-  const videoChunksRef = useRef([])
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -112,9 +105,6 @@ export default function NewInstallation() {
   const serialCaptureRef = useRef()
   const installCaptureRef = useRef()
 
-  // Recording duration timer
-  const [recordingDuration, setRecordingDuration] = useState(0)
-  const recordingTimerRef = useRef(null)
   const [videoError, setVideoError] = useState('')
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })) }
@@ -218,149 +208,43 @@ export default function NewInstallation() {
     })
   }
 
-  // Video camera functions
-  async function openVideoCam(targetSetter) {
+  // Video capture — always use native camera via file input
+  function handleVideoCapture(files, setter) {
     setVideoError('')
-    try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // Fallback: open native file picker for video
-        setVideoError('Browser does not support in-app recording. Please use "Upload Video" or record with your camera app first.')
+    if (!files || files.length === 0) return
+    const file = files[0]
+
+    // Validate it's a video
+    if (!file.type.startsWith('video/')) {
+      setVideoError('Please select a valid video file.')
+      return
+    }
+    // Validate file size (500MB max)
+    if (file.size > 500 * 1024 * 1024) {
+      setVideoError(`Video is too large (${Math.round(file.size / (1024 * 1024))}MB). Maximum allowed is 500MB.`)
+      return
+    }
+
+    const url = URL.createObjectURL(file)
+    // Check duration if metadata is available
+    const videoEl = document.createElement('video')
+    videoEl.preload = 'metadata'
+    videoEl.onloadedmetadata = () => {
+      URL.revokeObjectURL(videoEl.src)
+      if (videoEl.duration && isFinite(videoEl.duration) && videoEl.duration < 300) {
+        setVideoError(`Video is only ${Math.round(videoEl.duration)} seconds long. Minimum required is 5 minutes (300 seconds).`)
+        URL.revokeObjectURL(url)
         return
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 },
-        },
-        audio: true,
-      })
-      setVideoCamStream(stream)
-      setVideoCamOpen(true)
-      setActiveVideoTarget(() => targetSetter)
-      setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
-    } catch (err) {
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setVideoError('Camera permission denied. Please allow camera access in your browser settings and try again.')
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setVideoError('No camera found on this device.')
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setVideoError('Camera is in use by another app. Please close other camera apps and try again.')
-      } else {
-        setVideoError('Unable to access camera. Please use "Upload Video" instead.')
-      }
+      setVideoError('')
+      setter(v => [...v, { url, name: file.name, blob: file, duration: videoEl.duration }])
     }
-  }
-
-  function startRecording() {
-    if (!videoCamStream) return
-    setVideoError('')
-    videoChunksRef.current = []
-
-    // Find the best supported MIME type for this browser
-    const codecs = [
-      'video/mp4;codecs=avc1.640028',   // H.264 High Profile Level 4.0
-      'video/mp4;codecs=avc1.42E01E',   // H.264 Baseline
-      'video/mp4',
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ]
-    let mimeType = ''
-    for (const codec of codecs) {
-      try {
-        if (MediaRecorder.isTypeSupported(codec)) { mimeType = codec; break }
-      } catch { /* skip unsupported */ }
+    videoEl.onerror = () => {
+      // If metadata can't be read, still allow the file
+      setVideoError('')
+      setter(v => [...v, { url, name: file.name, blob: file }])
     }
-
-    // Get actual video track resolution to set appropriate bitrate
-    const videoTrack = videoCamStream.getVideoTracks()[0]
-    const settings = videoTrack?.getSettings() || {}
-    const width = settings.width || 1920
-    const height = settings.height || 1080
-    const pixels = width * height
-
-    // Scale bitrate based on resolution:
-    // 1080p = ~8 Mbps, 720p = ~5 Mbps, 4K = ~20 Mbps
-    let bitrate = 8000000
-    if (pixels >= 3840 * 2160) bitrate = 20000000
-    else if (pixels >= 1920 * 1080) bitrate = 8000000
-    else if (pixels >= 1280 * 720) bitrate = 5000000
-    else bitrate = 3000000
-
-    const options = { videoBitsPerSecond: bitrate }
-    if (mimeType) options.mimeType = mimeType
-
-    let recorder
-    try {
-      recorder = new MediaRecorder(videoCamStream, options)
-    } catch {
-      // Fallback: try without specific options
-      try {
-        recorder = new MediaRecorder(videoCamStream)
-      } catch (err2) {
-        setVideoError('Your browser does not support video recording. Please use "Upload Video" instead.')
-        closeVideoCam()
-        return
-      }
-    }
-
-    recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
-    recorder.onerror = () => {
-      setVideoError('Recording failed unexpectedly. Please try again.')
-      stopRecording()
-    }
-    recorder.onstop = () => {
-      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType || 'video/webm' })
-      const url = URL.createObjectURL(blob)
-      const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm'
-      if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.${ext}`, blob }])
-    }
-
-    recorder.start(1000) // Collect data every second for reliability
-    setVideoRecorder(recorder)
-    setIsRecording(true)
-    setRecordingDuration(0)
-    recordingTimerRef.current = setInterval(() => {
-      setRecordingDuration(d => d + 1)
-    }, 1000)
-  }
-
-  function stopRecording() {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-      recordingTimerRef.current = null
-    }
-    setRecordingDuration(0)
-    if (videoRecorder && videoRecorder.state !== 'inactive') {
-      videoRecorder.stop()
-    }
-    setIsRecording(false)
-    setVideoRecorder(null)
-    closeVideoCam()
-  }
-
-  function closeVideoCam() {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-      recordingTimerRef.current = null
-    }
-    if (videoCamStream) videoCamStream.getTracks().forEach(t => t.stop())
-    setVideoCamStream(null)
-    setVideoCamOpen(false)
-    setIsRecording(false)
-    setVideoRecorder(null)
-    setActiveVideoTarget(null)
-    setRecordingDuration(0)
-  }
-
-  function formatDuration(seconds) {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    videoEl.src = url
   }
 
   function handleVideoFiles(files, setter) {
@@ -371,12 +255,13 @@ export default function NewInstallation() {
         return
       }
       // Validate file type
-      const validTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska', 'video/3gpp', 'video/mpeg']
-      const ext = (file.name || '').split('.').pop()?.toLowerCase()
-      const validExts = ['mp4', 'mov', 'webm', 'avi', 'mkv', '3gp', 'mpeg']
-      if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
-        setVideoError(`Unsupported video format: "${file.name}". Please use MP4, MOV, WebM, or AVI.`)
-        return
+      if (!file.type.startsWith('video/')) {
+        const ext = (file.name || '').split('.').pop()?.toLowerCase()
+        const validExts = ['mp4', 'mov', 'webm', 'avi', 'mkv', '3gp', 'mpeg']
+        if (!validExts.includes(ext)) {
+          setVideoError(`Unsupported video format: "${file.name}". Please use MP4, MOV, WebM, or AVI.`)
+          return
+        }
       }
 
       const url = URL.createObjectURL(file)
@@ -393,7 +278,7 @@ export default function NewInstallation() {
         setter(v => [...v, { url, name: file.name, blob: file, duration: videoEl.duration }])
       }
       videoEl.onerror = () => {
-        // If metadata can't be read, still allow the file (some formats don't report duration)
+        // If metadata can't be read, still allow the file
         setVideoError('')
         setter(v => [...v, { url, name: file.name, blob: file }])
       }
@@ -977,51 +862,25 @@ export default function NewInstallation() {
             Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
           <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginBottom: 14, fontStyle: 'italic' }}>
-            Tip: Record in landscape where possible. Keep the camera steady. For best quality on mobile, use "Upload Video" after recording with your native camera app.
+            Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
-          {videoCamOpen && activeVideoTarget === setVideosPos1 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
-              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
-              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                {isRecording && (
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', fontFamily: 'ui-monospace, monospace', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                    REC {formatDuration(recordingDuration)}
-                  </span>
-                )}
-                {!isRecording ? (
-                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
-                  </button>
-                ) : (
-                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
-                    <Square size={12} /> Stop Recording
-                  </button>
-                )}
-                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
-              </div>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos1.length > 0 ? 16 : 0 }}>
+            <button type="button" onClick={() => videoCaptureRef1.current.click()} className="vio-btn vio-btn-secondary"
+              style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+              <Video size={28} /> Take Video
+            </button>
+            <button type="button" onClick={() => videoFileRef1.current.click()} className="vio-btn vio-btn-ghost"
+              style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+              <Upload size={28} /> Upload Video
+            </button>
+            <input ref={videoCaptureRef1} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
+              onChange={e => { handleVideoCapture(e.target.files, setVideosPos1); e.target.value = '' }} />
+            <input ref={videoFileRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
+              onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
+          </div>
 
-          {!(videoCamOpen && activeVideoTarget === setVideosPos1) && (
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos1.length > 0 ? 16 : 0 }}>
-              <button type="button" onClick={() => isMobile ? videoCaptureRef1.current.click() : openVideoCam(setVideosPos1)} className="vio-btn vio-btn-secondary"
-                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Video size={28} /> Record Video
-              </button>
-              <button type="button" onClick={() => videoFileRef1.current.click()} className="vio-btn vio-btn-ghost"
-                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Upload size={28} /> Upload Video
-              </button>
-              <input ref={videoFileRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
-              <input ref={videoCaptureRef1} type="file" accept="video/*" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
-            </div>
-          )}
-
-          {videoError && (activeVideoTarget === setVideosPos1 || !activeVideoTarget) && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
+          {videoError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
 
           {videosPos1.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1050,51 +909,25 @@ export default function NewInstallation() {
             Ensure the top of the tower remains clearly visible against the sky throughout the recording, with no movement, pauses, or interruptions.
           </p>
           <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginBottom: 14, fontStyle: 'italic' }}>
-            Tip: Record in landscape where possible. Keep the camera steady. For best quality on mobile, use "Upload Video" after recording with your native camera app.
+            Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
-          {videoCamOpen && activeVideoTarget === setVideosPos2 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
-              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
-              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                {isRecording && (
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', fontFamily: 'ui-monospace, monospace', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                    REC {formatDuration(recordingDuration)}
-                  </span>
-                )}
-                {!isRecording ? (
-                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
-                  </button>
-                ) : (
-                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
-                    <Square size={12} /> Stop Recording
-                  </button>
-                )}
-                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
-              </div>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos2.length > 0 ? 16 : 0 }}>
+            <button type="button" onClick={() => videoCaptureRef2.current.click()} className="vio-btn vio-btn-secondary"
+              style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+              <Video size={28} /> Take Video
+            </button>
+            <button type="button" onClick={() => videoFileRef2.current.click()} className="vio-btn vio-btn-ghost"
+              style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
+              <Upload size={28} /> Upload Video
+            </button>
+            <input ref={videoCaptureRef2} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
+              onChange={e => { handleVideoCapture(e.target.files, setVideosPos2); e.target.value = '' }} />
+            <input ref={videoFileRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
+              onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
+          </div>
 
-          {!(videoCamOpen && activeVideoTarget === setVideosPos2) && (
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos2.length > 0 ? 16 : 0 }}>
-              <button type="button" onClick={() => isMobile ? videoCaptureRef2.current.click() : openVideoCam(setVideosPos2)} className="vio-btn vio-btn-secondary"
-                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Video size={28} /> Record Video
-              </button>
-              <button type="button" onClick={() => videoFileRef2.current.click()} className="vio-btn vio-btn-ghost"
-                style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-                <Upload size={28} /> Upload Video
-              </button>
-              <input ref={videoFileRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
-              <input ref={videoCaptureRef2} type="file" accept="video/*" style={{ display: 'none' }}
-                onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
-            </div>
-          )}
-
-          {videoError && activeVideoTarget === setVideosPos2 && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
+          {videoError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
 
           {videosPos2.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
