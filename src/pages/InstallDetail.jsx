@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Camera, Upload, X, Plus, Trash2, Video } from 'lucide-react'
+import { ArrowLeft, Camera, Upload, X, Plus, Trash2, Video, Maximize, Square } from 'lucide-react'
 import AppShell from '../components/AppShell'
 import { useApp } from '../context/AppContext'
 import { useToast } from '../context/ToastContext'
@@ -253,17 +253,42 @@ export default function InstallDetail() {
       setCamOpen(false)
       setRecording(false)
       setRecorder(null)
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    }
+
+    const viewfinderRef = useRef()
+    function toggleFullscreen() {
+      if (!viewfinderRef.current) return
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      } else {
+        viewfinderRef.current.requestFullscreen().catch(() => {
+          if (viewfinderRef.current.webkitRequestFullscreen) viewfinderRef.current.webkitRequestFullscreen()
+        })
+      }
     }
 
     return (
       <div className="vio-card" style={{ marginBottom: 16 }}>
         <SectionLabel>{title}</SectionLabel>
 
-        {/* Webcam viewfinder (desktop) */}
+        {/* Webcam viewfinder */}
         {camOpen && (
-          <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
-            <video ref={vidRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 260, objectFit: 'cover' }} />
+          <div ref={viewfinderRef} style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
+            <video ref={vidRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: '80vh', objectFit: 'contain' }} />
             <canvas ref={canRef} style={{ display: 'none' }} />
+            {isVideo && recording && (
+              <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'ui-monospace, monospace' }}>REC</span>
+              </div>
+            )}
+            {isVideo && (
+              <button type="button" onClick={toggleFullscreen}
+                style={{ position: 'absolute', top: 10, right: 10, width: 36, height: 36, borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Maximize size={18} />
+              </button>
+            )}
             <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
               {isVideo ? (
                 !recording ? (
@@ -271,7 +296,9 @@ export default function InstallDetail() {
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
                   </button>
                 ) : (
-                  <button type="button" onClick={stopRec} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>Stop Recording</button>
+                  <button type="button" onClick={stopRec} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
+                    <Square size={12} /> Stop Recording
+                  </button>
                 )
               ) : (
                 <button type="button" onClick={capturePhoto} className="vio-btn vio-btn-primary">Capture</button>
@@ -284,7 +311,10 @@ export default function InstallDetail() {
         {/* Buttons */}
         {!camOpen && (
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: items.length > 0 ? 14 : 0 }}>
-            <button type="button" onClick={() => isMobile && captureRef ? captureRef.current.click() : openWebcam()} className="vio-btn vio-btn-secondary"
+            <button type="button" onClick={() => {
+              if (isVideo) { openWebcam() }
+              else { isMobile && captureRef ? captureRef.current.click() : openWebcam() }
+            }} className="vio-btn vio-btn-secondary"
               style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
               {isVideo ? <Video size={22} /> : <Camera size={22} />} {isVideo ? 'Record Video' : 'Take Photo'}
             </button>

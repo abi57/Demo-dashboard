@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, X, Plus, Camera, Trash2, Play, Square, ArrowUp, ArrowDown, Video } from 'lucide-react'
+import { Upload, X, Plus, Camera, Trash2, Play, Square, ArrowUp, ArrowDown, Video, Maximize } from 'lucide-react'
 import AppShell from '../components/AppShell'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
@@ -216,6 +216,7 @@ export default function NewInstallation() {
   const [activeVideoTarget, setActiveVideoTarget] = useState(null)
   const videoCamRef = useRef()
   const videoChunksRef = useRef([])
+  const viewfinderRef = useRef()
 
   async function openVideoCam(targetSetter) {
     setVideoError('')
@@ -306,6 +307,22 @@ export default function NewInstallation() {
     setIsRecording(false)
     setVideoRecorder(null)
     setActiveVideoTarget(null)
+    // Exit fullscreen if active
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+  }
+
+  function toggleFullscreen() {
+    if (!viewfinderRef.current) return
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    } else {
+      viewfinderRef.current.requestFullscreen().catch(() => {
+        // Fallback for iOS Safari
+        if (viewfinderRef.current.webkitRequestFullscreen) {
+          viewfinderRef.current.webkitRequestFullscreen()
+        }
+      })
+    }
   }
 
   function handleVideoCapture(files, setter) {
@@ -964,16 +981,20 @@ export default function NewInstallation() {
             Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
-          {/* Webcam viewfinder for desktop */}
+          {/* Webcam viewfinder */}
           {videoCamOpen && activeVideoTarget === setVideosPos1 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
-              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+            <div ref={viewfinderRef} style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: '80vh', objectFit: 'contain' }} />
               {isRecording && (
-                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
+                <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'ui-monospace, monospace' }}>REC</span>
                 </div>
               )}
+              <button type="button" onClick={toggleFullscreen}
+                style={{ position: 'absolute', top: 10, right: 10, width: 36, height: 36, borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Maximize size={18} />
+              </button>
               <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
@@ -1038,16 +1059,20 @@ export default function NewInstallation() {
             Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
-          {/* Webcam viewfinder for desktop */}
+          {/* Webcam viewfinder */}
           {videoCamOpen && activeVideoTarget === setVideosPos2 && (
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
-              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+            <div ref={viewfinderRef} style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000', position: 'relative' }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: '80vh', objectFit: 'contain' }} />
               {isRecording && (
-                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
+                <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'ui-monospace, monospace' }}>REC</span>
                 </div>
               )}
+              <button type="button" onClick={toggleFullscreen}
+                style={{ position: 'absolute', top: 10, right: 10, width: 36, height: 36, borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Maximize size={18} />
+              </button>
               <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
                 {!isRecording ? (
                   <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
