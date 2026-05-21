@@ -991,7 +991,7 @@ export default function NewInstallation() {
 
           {!(videoCamOpen && activeVideoTarget === setVideosPos1) && (
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos1.length > 0 ? 16 : 0 }}>
-            <button type="button" onClick={() => isMobile ? videoCaptureRef1.current.click() : openVideoCam(setVideosPos1)} className="vio-btn vio-btn-secondary"
+            <button type="button" onClick={() => openVideoCam(setVideosPos1)} className="vio-btn vio-btn-secondary"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
               <Video size={28} /> Record Video
             </button>
@@ -1065,7 +1065,7 @@ export default function NewInstallation() {
 
           {!(videoCamOpen && activeVideoTarget === setVideosPos2) && (
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos2.length > 0 ? 16 : 0 }}>
-            <button type="button" onClick={() => isMobile ? videoCaptureRef2.current.click() : openVideoCam(setVideosPos2)} className="vio-btn vio-btn-secondary"
+            <button type="button" onClick={() => openVideoCam(setVideosPos2)} className="vio-btn vio-btn-secondary"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
               <Video size={28} /> Record Video
             </button>
