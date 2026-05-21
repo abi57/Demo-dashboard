@@ -265,7 +265,7 @@ export default function InstallDetail() {
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: items.length > 0 ? 14 : 0 }}>
             <button type="button" onClick={() => isMobile && captureRef ? captureRef.current.click() : openWebcam()} className="vio-btn vio-btn-secondary"
               style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>
-              <Camera size={22} /> {isVideo ? 'Record Video' : 'Take Photo'}
+              {isVideo ? <Video size={22} /> : <Camera size={22} />} {isVideo ? 'Record Video' : 'Take Photo'}
             </button>
             <button type="button" onClick={() => fileRef.current.click()} className="vio-btn vio-btn-ghost"
               style={{ flex: 1, maxWidth: 160, height: 70, flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 10 }}>

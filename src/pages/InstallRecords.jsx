@@ -28,7 +28,7 @@ export default function InstallRecords() {
     <AppShell title="Completed Installations">
       <div style={{ position: 'relative', maxWidth: 400, marginBottom: 24 }}>
         <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--vio-text-muted)', pointerEvents: 'none' }} />
-        <input className="vio-input" style={{ paddingLeft: 40, height: 44 }} placeholder="Search by installer, tower ID, site owner…"
+        <input className="vio-input" style={{ paddingLeft: 40, height: 44 }} placeholder="Search installer / tower Id / owner"
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 

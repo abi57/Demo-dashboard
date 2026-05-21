@@ -395,16 +395,16 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   .sidebar { transform: translateX(-100%); }
   .sidebar--open { transform: translateX(0); }
   .app-main { margin-left: 0; }
-  .app-header { left: 0; padding: 0 14px; gap: 10px; height: 60px; }
-  .app-content { padding: 76px 16px 32px; }
+  .app-header { left: 0; padding: 0 14px; gap: 10px; height: 68px; }
+  .app-content { padding: 84px 16px 32px; }
   .mobile-menu-btn { display: flex !important; }
   .header-search { max-width: none; }
-  .header-search-input { height: 38px; font-size: 14px; border-radius: 9px; padding: 0 12px 0 36px; }
-  .header-search-icon { left: 12px; width: 15px; height: 15px; }
-  .header-icon-btn { width: 38px; height: 38px; border-radius: 9px; }
+  .header-search-input { height: 44px; font-size: 15px; border-radius: 10px; padding: 0 14px 0 40px; }
+  .header-search-icon { left: 13px; width: 16px; height: 16px; }
+  .header-icon-btn { width: 44px; height: 44px; border-radius: 10px; }
   .header-right { gap: 8px; }
   .header-profile-btn { padding: 5px 12px 5px 5px; gap: 8px; }
-  .header-profile-avatar { width: 28px; height: 28px; font-size: 11px; }
+  .header-profile-avatar { width: 32px; height: 32px; font-size: 12px; }
   .vio-card { padding: 20px; border-radius: 12px; }
   .vio-input { height: 44px; font-size: 16px; border-radius: 10px; padding: 0 14px; }
   .vio-btn { height: 44px; border-radius: 10px; font-size: 15px; }
@@ -414,15 +414,17 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 
 /* ─── Mobile Landscape ≤768px ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .app-header { height: 56px; padding: 0 12px; gap: 8px; }
-  .app-content { padding: 72px 14px 28px; }
+  .app-header { height: 64px; padding: 0 12px; gap: 8px; }
+  .app-content { padding: 80px 14px 28px; }
   .header-profile-name { display: none; }
   .header-profile-chevron { display: none; }
   .header-profile-btn { padding: 4px; border-radius: 50%; }
-  .header-search-input { height: 36px; font-size: 14px; padding: 0 10px 0 34px; border-radius: 8px; }
-  .header-search-icon { left: 10px; width: 14px; height: 14px; }
-  .header-icon-btn { width: 36px; height: 36px; border-radius: 8px; }
-  .header-right { gap: 6px; }
+  .header-search-input { height: 42px; font-size: 15px; padding: 0 12px 0 38px; border-radius: 10px; }
+  .header-search-icon { left: 12px; width: 16px; height: 16px; }
+  .header-icon-btn { width: 42px; height: 42px; border-radius: 10px; }
+  .header-icon-btn svg { width: 20px; height: 20px; }
+  .header-right { gap: 7px; }
+  .header-profile-avatar { width: 32px; height: 32px; font-size: 12px; }
   .sidebar { width: 280px; }
   .vio-card { padding: 18px 16px; border-radius: 12px; }
   .vio-card [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
@@ -442,17 +444,17 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 /* ─── Mobile Portrait ≤480px ────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   html { font-size: 16.5px; }
-  .app-header { height: 60px; padding: 0 10px; gap: 8px; }
-  .app-content { padding: 76px 12px 28px; }
+  .app-header { height: 68px; padding: 0 10px; gap: 8px; }
+  .app-content { padding: 84px 12px 28px; }
   .header-search { min-width: 0; }
-  .header-search-input { height: 38px; font-size: 14px; padding: 0 10px 0 34px; border-radius: 9px; }
-  .header-search-icon { left: 10px; width: 15px; height: 15px; }
-  .header-icon-btn { width: 36px; height: 36px; border-radius: 9px; }
-  .header-icon-btn svg { width: 18px; height: 18px; }
-  .header-right { gap: 5px; }
-  .header-profile-btn { padding: 3px; border-radius: 50%; }
-  .header-profile-avatar { width: 28px; height: 28px; font-size: 11px; }
-  .notif-dropdown { position: fixed !important; top: 60px !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; border-radius: 12px !important; }
+  .header-search-input { height: 44px; font-size: 15px; padding: 0 12px 0 38px; border-radius: 10px; }
+  .header-search-icon { left: 12px; width: 16px; height: 16px; }
+  .header-icon-btn { width: 42px; height: 42px; border-radius: 10px; }
+  .header-icon-btn svg { width: 20px; height: 20px; }
+  .header-right { gap: 6px; }
+  .header-profile-btn { padding: 4px; border-radius: 50%; }
+  .header-profile-avatar { width: 32px; height: 32px; font-size: 12px; }
+  .notif-dropdown { position: fixed !important; top: 68px !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; border-radius: 12px !important; }
   .vio-card { padding: 18px 16px; border-radius: 12px; }
   .vio-card [style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
   .vio-input { height: 52px; font-size: 17px; border-radius: 11px; padding: 0 16px; }
@@ -479,16 +481,16 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
 /* ─── Small Phone ≤360px ────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
   html { font-size: 15.5px; }
-  .app-header { height: 56px; padding: 0 8px; gap: 6px; }
-  .app-content { padding: 72px 10px 24px; }
+  .app-header { height: 62px; padding: 0 8px; gap: 6px; }
+  .app-content { padding: 78px 10px 24px; }
   .header-search { min-width: 0; }
-  .header-search-input { height: 34px; font-size: 13px; padding: 0 8px 0 30px; border-radius: 8px; }
-  .header-search-icon { left: 8px; width: 14px; height: 14px; }
-  .header-icon-btn { width: 32px; height: 32px; border-radius: 8px; }
-  .header-icon-btn svg { width: 16px; height: 16px; }
-  .header-right { gap: 4px; }
+  .header-search-input { height: 40px; font-size: 14px; padding: 0 10px 0 34px; border-radius: 9px; }
+  .header-search-icon { left: 10px; width: 15px; height: 15px; }
+  .header-icon-btn { width: 38px; height: 38px; border-radius: 9px; }
+  .header-icon-btn svg { width: 18px; height: 18px; }
+  .header-right { gap: 5px; }
   .header-profile-btn { padding: 3px; border-radius: 50%; }
-  .header-profile-avatar { width: 26px; height: 26px; font-size: 10px; }
+  .header-profile-avatar { width: 30px; height: 30px; font-size: 11px; }
   .vio-card { padding: 16px 14px; border-radius: 10px; }
   .vio-input { height: 50px; font-size: 16px; padding: 0 14px; border-radius: 10px; }
   .vio-btn { height: 50px; padding: 0 20px; font-size: 16px; border-radius: 10px; }
@@ -497,7 +499,7 @@ input[type="date"].vio-input::-webkit-date-and-time-value {
   .auth-input { height: 50px; font-size: 16px; }
   .auth-submit { height: 52px; font-size: 16px; }
   .climb-time-input { height: 44px !important; font-size: 15px !important; }
-  .notif-dropdown { top: 56px !important; left: 6px !important; right: 6px !important; }
+  .notif-dropdown { top: 62px !important; left: 6px !important; right: 6px !important; }
 }
 
 /* ─── Large Desktop ≥1536px ─────────────────────────────────────────────────── */

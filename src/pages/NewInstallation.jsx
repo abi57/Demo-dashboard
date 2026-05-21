@@ -208,7 +208,70 @@ export default function NewInstallation() {
     })
   }
 
-  // Video capture — always use native camera via file input
+  // Video capture — native camera on mobile, in-browser recorder on desktop
+  const [videoCamOpen, setVideoCamOpen] = useState(false)
+  const [videoCamStream, setVideoCamStream] = useState(null)
+  const [videoRecorder, setVideoRecorder] = useState(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [activeVideoTarget, setActiveVideoTarget] = useState(null)
+  const videoCamRef = useRef()
+  const videoChunksRef = useRef([])
+
+  async function openVideoCam(targetSetter) {
+    setVideoError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: true,
+      })
+      setVideoCamStream(stream)
+      setVideoCamOpen(true)
+      setActiveVideoTarget(() => targetSetter)
+      setTimeout(() => { if (videoCamRef.current) videoCamRef.current.srcObject = stream }, 50)
+    } catch {
+      setVideoError('Unable to access camera. Please use "Upload Video" instead.')
+    }
+  }
+
+  function startRecording() {
+    if (!videoCamStream) return
+    videoChunksRef.current = []
+    let recorder
+    try {
+      recorder = new MediaRecorder(videoCamStream)
+    } catch {
+      setVideoError('Recording not supported in this browser.')
+      closeVideoCam()
+      return
+    }
+    recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data) }
+    recorder.onstop = () => {
+      const blob = new Blob(videoChunksRef.current, { type: recorder.mimeType || 'video/webm' })
+      const url = URL.createObjectURL(blob)
+      const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm'
+      if (activeVideoTarget) activeVideoTarget(v => [...v, { url, name: `tower-video-${Date.now()}.${ext}`, blob }])
+    }
+    recorder.start()
+    setVideoRecorder(recorder)
+    setIsRecording(true)
+  }
+
+  function stopRecording() {
+    if (videoRecorder && videoRecorder.state !== 'inactive') videoRecorder.stop()
+    setIsRecording(false)
+    setVideoRecorder(null)
+    closeVideoCam()
+  }
+
+  function closeVideoCam() {
+    if (videoCamStream) videoCamStream.getTracks().forEach(t => t.stop())
+    setVideoCamStream(null)
+    setVideoCamOpen(false)
+    setIsRecording(false)
+    setVideoRecorder(null)
+    setActiveVideoTarget(null)
+  }
+
   function handleVideoCapture(files, setter) {
     setVideoError('')
     if (!files || files.length === 0) return
@@ -485,7 +548,7 @@ export default function NewInstallation() {
           <SectionLabel>Installer Details</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Installer Full Name" required error={errors.installerName}>
-              <input className={inputCls('installerName')} placeholder="Name" value={form.installerName} onChange={e => set('installerName', e.target.value)} />
+              <input className={inputCls('installerName')} placeholder="" value={form.installerName} onChange={e => set('installerName', e.target.value)} />
             </Field>
             <Field label="Installer Company" required error={errors.company}>
               <input className={inputCls('company')} value={form.company} readOnly disabled style={{ background: 'var(--vio-page-bg)', cursor: 'not-allowed' }} />
@@ -522,16 +585,16 @@ export default function NewInstallation() {
           <SectionLabel>Site & Asset</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Site Owner" required error={errors.siteOwner}>
-              <input className={inputCls('siteOwner')} placeholder="Indara, One NZ, Forty South…" value={form.siteOwner} onChange={e => set('siteOwner', e.target.value)} />
+              <input className={inputCls('siteOwner')} placeholder="" value={form.siteOwner} onChange={e => set('siteOwner', e.target.value)} />
             </Field>
             <Field label="Tower ID / Asset Tag" required error={errors.towerId}>
-              <input className={inputCls('towerId')} placeholder="3500833, RCTLYF, S5WNK…" value={form.towerId} onChange={e => set('towerId', e.target.value)} />
+              <input className={inputCls('towerId')} placeholder="" value={form.towerId} onChange={e => set('towerId', e.target.value)} />
             </Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
             <Field label="Viotel Sensor Serial(s)" required error={errors.sensorSerials}>
-              <input className={inputCls('sensorSerials')} placeholder="e.g. viot01875, viot02063 — comma separate multiples" value={form.sensorSerials} onChange={e => set('sensorSerials', e.target.value)} />
+              <input className={inputCls('sensorSerials')} placeholder="" value={form.sensorSerials} onChange={e => set('sensorSerials', e.target.value)} />
             </Field>
           </div>
 
@@ -595,19 +658,19 @@ export default function NewInstallation() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Accelerometer Install Height (m above ground level)" required error={errors.heightAGL}>
               <div style={{ position: 'relative' }}>
-                <input className={inputCls('heightAGL')} type="number" step="0.01" min="0" placeholder="29.80" value={form.heightAGL} onChange={e => set('heightAGL', e.target.value)} style={{ paddingRight: 32 }} />
+                <input className={inputCls('heightAGL')} type="number" step="0.01" min="0" placeholder="" value={form.heightAGL} onChange={e => set('heightAGL', e.target.value)} style={{ paddingRight: 32 }} />
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>m</span>
               </div>
             </Field>
             <Field label="Accelerometer Orientation (which direction is the front-side pink label pointing after installation?)" required error={errors.accelOrientation}>
               <div style={{ position: 'relative' }}>
-                <input className={inputCls('accelOrientation')} type="number" min="0" max="359" placeholder="Degree from true north (0–359°)" value={form.accelOrientation} onChange={e => set('accelOrientation', e.target.value)} style={{ paddingRight: 100 }} />
+                <input className={inputCls('accelOrientation')} type="number" min="0" max="359" placeholder="" value={form.accelOrientation} onChange={e => set('accelOrientation', e.target.value)} style={{ paddingRight: 100 }} />
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--vio-text-muted)' }}>° from true north</span>
               </div>
               <p style={{ fontSize: 11, color: 'var(--vio-text-muted)', marginTop: 5 }}>Sanity check: value must be between 0 and 359 degrees.</p>
             </Field>
             <Field label="Structural Element" required error={errors.structuralElement}>
-              <input className={inputCls('structuralElement')} placeholder="Tower leg, Horizontal, Cable ladder…" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
+              <input className={inputCls('structuralElement')} placeholder="" value={form.structuralElement} onChange={e => set('structuralElement', e.target.value)} />
             </Field>
             <div>
               <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--vio-text-secondary)', marginBottom: 6 }}>
@@ -630,7 +693,7 @@ export default function NewInstallation() {
                   <input
                     className={inputCls('windHeightAGL')}
                     type="number" step="0.01" min="0"
-                    placeholder="e.g. 25.50"
+                    placeholder=""
                     value={form.windNA ? '' : form.windHeightAGL}
                     onChange={e => set('windHeightAGL', e.target.value)}
                     disabled={form.windNA}
@@ -646,7 +709,7 @@ export default function NewInstallation() {
                   <input
                     className={inputCls('windOrientation')}
                     type="number" min="0" max="359"
-                    placeholder="Direction (0–359° from true north)"
+                    placeholder=""
                     value={form.windNA ? '' : form.windOrientation}
                     onChange={e => set('windOrientation', e.target.value)}
                     disabled={form.windNA}
@@ -865,10 +928,30 @@ export default function NewInstallation() {
             Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
+          {/* Webcam viewfinder for desktop */}
+          {videoCamOpen && activeVideoTarget === setVideosPos1 && (
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
+                {!isRecording ? (
+                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
+                  </button>
+                ) : (
+                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
+                    <Square size={12} /> Stop Recording
+                  </button>
+                )}
+                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
+              </div>
+            </div>
+          )}
+
+          {!(videoCamOpen && activeVideoTarget === setVideosPos1) && (
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos1.length > 0 ? 16 : 0 }}>
-            <button type="button" onClick={() => videoCaptureRef1.current.click()} className="vio-btn vio-btn-secondary"
+            <button type="button" onClick={() => isMobile ? videoCaptureRef1.current.click() : openVideoCam(setVideosPos1)} className="vio-btn vio-btn-secondary"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-              <Video size={28} /> Take Video
+              <Video size={28} /> Record Video
             </button>
             <button type="button" onClick={() => videoFileRef1.current.click()} className="vio-btn vio-btn-ghost"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
@@ -879,6 +962,7 @@ export default function NewInstallation() {
             <input ref={videoFileRef1} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
               onChange={e => { handleVideoFiles(e.target.files, setVideosPos1); e.target.value = '' }} />
           </div>
+          )}
 
           {videoError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
 
@@ -912,10 +996,30 @@ export default function NewInstallation() {
             Tip: Record in landscape mode. Keep the camera steady for the full 5 minutes.
           </p>
 
+          {/* Webcam viewfinder for desktop */}
+          {videoCamOpen && activeVideoTarget === setVideosPos2 && (
+            <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--vio-card-border)', background: '#000' }}>
+              <video ref={videoCamRef} autoPlay playsInline muted style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+              <div style={{ display: 'flex', gap: 10, padding: 12, background: '#111', justifyContent: 'center' }}>
+                {!isRecording ? (
+                  <button type="button" onClick={startRecording} className="vio-btn vio-btn-primary" style={{ gap: 6, background: '#dc2626' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} /> Start Recording
+                  </button>
+                ) : (
+                  <button type="button" onClick={stopRecording} className="vio-btn vio-btn-primary" style={{ gap: 6 }}>
+                    <Square size={12} /> Stop Recording
+                  </button>
+                )}
+                {!isRecording && <button type="button" onClick={closeVideoCam} className="vio-btn vio-btn-ghost" style={{ color: '#fff', borderColor: '#444' }}>Cancel</button>}
+              </div>
+            </div>
+          )}
+
+          {!(videoCamOpen && activeVideoTarget === setVideosPos2) && (
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: videosPos2.length > 0 ? 16 : 0 }}>
-            <button type="button" onClick={() => videoCaptureRef2.current.click()} className="vio-btn vio-btn-secondary"
+            <button type="button" onClick={() => isMobile ? videoCaptureRef2.current.click() : openVideoCam(setVideosPos2)} className="vio-btn vio-btn-secondary"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
-              <Video size={28} /> Take Video
+              <Video size={28} /> Record Video
             </button>
             <button type="button" onClick={() => videoFileRef2.current.click()} className="vio-btn vio-btn-ghost"
               style={{ width: 150, height: 100, flexDirection: 'column', gap: 10, fontSize: 13, fontWeight: 600, borderRadius: 12 }}>
@@ -926,6 +1030,7 @@ export default function NewInstallation() {
             <input ref={videoFileRef2} type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska,video/3gpp,video/mpeg,.mp4,.mov,.webm,.avi,.mkv,.3gp,.mpeg" style={{ display: 'none' }}
               onChange={e => { handleVideoFiles(e.target.files, setVideosPos2); e.target.value = '' }} />
           </div>
+          )}
 
           {videoError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8, marginBottom: 8 }}>{videoError}</p>}
 
