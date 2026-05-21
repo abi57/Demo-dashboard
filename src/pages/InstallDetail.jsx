@@ -258,13 +258,24 @@ export default function InstallDetail() {
 
     const viewfinderRef = useRef()
     function toggleFullscreen() {
-      if (!viewfinderRef.current) return
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
-      } else {
-        viewfinderRef.current.requestFullscreen().catch(() => {
-          if (viewfinderRef.current.webkitRequestFullscreen) viewfinderRef.current.webkitRequestFullscreen()
+      const container = viewfinderRef.current
+      const video = vidRef.current
+      if (!container) return
+
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement
+      if (isFullscreen) {
+        (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document)
+        return
+      }
+
+      if (container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {
+          if (video && video.webkitEnterFullscreen) video.webkitEnterFullscreen()
         })
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen()
+      } else if (video && video.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen()
       }
     }
 

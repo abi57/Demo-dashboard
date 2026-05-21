@@ -312,16 +312,28 @@ export default function NewInstallation() {
   }
 
   function toggleFullscreen() {
-    if (!viewfinderRef.current) return
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {})
-    } else {
-      viewfinderRef.current.requestFullscreen().catch(() => {
-        // Fallback for iOS Safari
-        if (viewfinderRef.current.webkitRequestFullscreen) {
-          viewfinderRef.current.webkitRequestFullscreen()
-        }
+    const container = viewfinderRef.current
+    const video = videoCamRef.current
+    if (!container) return
+
+    // Check if already fullscreen
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement
+    if (isFullscreen) {
+      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document)
+      return
+    }
+
+    // Try container fullscreen first (works on desktop + Android Chrome)
+    if (container.requestFullscreen) {
+      container.requestFullscreen().catch(() => {
+        // Fallback: try video element fullscreen (iOS Safari)
+        if (video && video.webkitEnterFullscreen) video.webkitEnterFullscreen()
       })
+    } else if (container.webkitRequestFullscreen) {
+      container.webkitRequestFullscreen()
+    } else if (video && video.webkitEnterFullscreen) {
+      // iOS Safari only supports fullscreen on video elements
+      video.webkitEnterFullscreen()
     }
   }
 
